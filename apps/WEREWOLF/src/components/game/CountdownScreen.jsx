@@ -18,7 +18,6 @@ export const CountdownScreen = ({ roomCode, matchId, mansukeUser, room, timeLeft
 
     // MANSUKE残高の取得（10Yen以上あるか判定）
     const balance = mansukeUser?.balance || 0;
-    const canAfford = balance >= 10;
 
     // カウントダウンの秒数
     const count = timeLeft !== undefined ? timeLeft : 15;
@@ -50,8 +49,8 @@ export const CountdownScreen = ({ roomCode, matchId, mansukeUser, room, timeLeft
     // 現在の部屋の設定で存在する役職のリストを生成
     const availableRoles = room?.roleSettings
         ? Object.entries(room.roleSettings)
-            .filter(([_, count]) => count > 0)
-            .map(([role, _]) => role)
+            .filter(([, count]) => count > 0)
+            .map(([role]) => role)
         : [];
 
     return (

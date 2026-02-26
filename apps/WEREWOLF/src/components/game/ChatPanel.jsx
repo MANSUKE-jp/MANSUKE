@@ -11,7 +11,6 @@ export const ChatPanel = ({
     messages,
     user,
     teammates,
-    myPlayer,
     onSendMessage,
     title = "生存者チャット",
     isTeamChat = false,
@@ -45,18 +44,19 @@ export const ChatPanel = ({
                 await onSendMessage(chatInput);
                 // 送信成功したら入力欄をクリア
                 setChatInput("");
-            } catch (err) {
+            } catch (error) {
+                console.error(error);
                 alert("メッセージの送信に失敗しました。通信環境を確認してください。");
             }
         }
     };
 
-    const safeMessages = Array.isArray(messages) ? messages : [];
     // タイトルで霊界チャットかどうかを判定（簡易判定）
     const isGrave = title === "霊界チャット";
 
     // メッセージフィルタリングロジック（メモ化）
     const filteredMessages = useMemo(() => {
+        const safeMessages = Array.isArray(messages) ? messages : [];
         if (disableFilter || isGrave) return safeMessages;
 
         const isNightPhase = (currentPhase && typeof currentPhase === 'string')
@@ -67,7 +67,7 @@ export const ChatPanel = ({
         const phaseLabel = isNightPhase ? 'night' : 'day';
 
         return safeMessages.filter(m => m && m.day === currentDay && m.phaseLabel === phaseLabel);
-    }, [safeMessages, currentDay, currentPhase, isGrave, isTeamChat, disableFilter]);
+    }, [messages, currentDay, currentPhase, isGrave, disableFilter]);
 
     // ソートロジック（メモ化）
     const sortedMessages = useMemo(() => {

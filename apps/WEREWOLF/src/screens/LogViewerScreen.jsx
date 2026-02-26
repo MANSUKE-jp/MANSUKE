@@ -2,8 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, ArrowLeft, Loader, FileText, Clock, Trophy, AlertOctagon, Calendar, List, MessageSquare, ChevronRight, XCircle, User, Users, LayoutGrid, SortAsc, Hash, Filter, RefreshCw, Trash2, Crown, Mic, Play } from 'lucide-react';
 // LoadingScreen import removed
 import { collection, query, where, getDocs, orderBy, Timestamp, collectionGroup, getDoc, doc, limit } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../config/firebase.js';
+import { db } from '../config/firebase.js';
 import { LogPanel } from '../components/game/LogPanel.jsx';
 import { DeadPlayerInfoPanel } from '../components/game/DeadPlayerInfoPanel.jsx';
 import { ROLE_DEFINITIONS } from '../constants/gameData';
@@ -34,6 +33,7 @@ export const LogViewerScreen = ({ setView }) => {
 
     useEffect(() => {
         handleSearchButton(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleClearAll = () => {
@@ -82,9 +82,7 @@ export const LogViewerScreen = ({ setView }) => {
 
                 if (hasNameSearch) {
                     const nameQuery = query(collectionGroup(db, 'players'), where('name', '==', searchName.trim()));
-                    promises.push(getDocs(nameQuery).then(snapshot => {
-                        const matchIds = new Set();
-                        snapshot.forEach(doc => { });
+                    promises.push(getDocs(nameQuery).then(() => {
                         return new Set();
                     }));
                 } else {
@@ -118,7 +116,7 @@ export const LogViewerScreen = ({ setView }) => {
                     promises.push(Promise.resolve(null));
                 }
 
-                const [nameMatchIds, dateResults] = await Promise.all(promises);
+                const [, dateResults] = await Promise.all(promises);
 
                 let finalResults = [];
 
@@ -173,8 +171,8 @@ export const LogViewerScreen = ({ setView }) => {
                 if (!oldChatSnap.empty) {
                     chatMessages = oldChatSnap.docs.map(d => d.data());
                 }
-            } catch (e) {
-                // fallback failed silently
+            } catch (error) {
+                console.warn('Chat fetch fallback failed:', error);
             }
         }
 

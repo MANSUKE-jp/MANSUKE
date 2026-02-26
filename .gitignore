@@ -13,7 +13,7 @@ dist
 dist-ssr
 .firebase
 .DS_Store
-apps/GIFTCARD_code
+apps/PREPAIDCARD_CODE
 
 # Editor directories and files
 .vscode/*

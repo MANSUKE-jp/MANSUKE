@@ -4,8 +4,8 @@ import { QrReader } from 'react-qr-reader';
 import SignatureCanvas from 'react-signature-canvas';
 import { db, functions } from '../config/firebase'; // functionsを追加
 import { httpsCallable } from 'firebase/functions'; // Cloud Functions呼び出し用
-import { collection, query, where, getDocs, limit } from 'firebase/firestore'; // updateDoc, serverTimestamp, doc を削除
-import { AlertTriangle, CheckCircle2, Keyboard, Loader2, ArrowLeft, Camera, Eraser, Check, Zap, PenTool, Banknote, Send, RotateCcw, XCircle, Search, Delete, X, Home, RotateCw } from 'lucide-react';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { AlertTriangle, Keyboard, Loader2, ArrowLeft, Camera, Eraser, Check, Zap, PenTool, Banknote, Send, RotateCcw, XCircle, Search, Delete, X, RotateCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import VirtualKeyboard from '../components/keyboard/VirtualKeyboard';
 
@@ -302,7 +302,7 @@ const Activate = () => {
             const activatePrepaidCard = httpsCallable(functions, 'activatePrepaidCard');
 
             // サーバー関数を実行し、必要なデータを全て渡します
-            const result = await activatePrepaidCard({
+            await activatePrepaidCard({
                 docId: cardData.id,               // 対象のドキュメントID
                 amount: parseInt(amount, 10),     // チャージ金額
                 userPin: pin,                     // 設定されたPIN
@@ -322,26 +322,13 @@ const Activate = () => {
 
     // --- ハンドラー ---
 
-    const handleScan = (result, error) => {
+    const handleScan = (result) => {
         if (result && status === 'scanning' && !errorModalRef.current) {
             verifyCode(result?.text);
         }
     };
 
-    const resetScan = () => {
-        isProcessing.current = false;
-        setStatus('scanning');
-        setErrorModal({ show: false, message: '' });
-        errorModalRef.current = false;
-        setManualCode('');
-        setAmount('');
-        setPin('');
-        setCardData(null);
-        setCustomerSignatureImg(null);
-        setPressProgress(0);
-        setIsChecking(false);
-        setIsActivating(false);
-    };
+
 
     const handleKeyPress = (key) => {
         if (status === 'amount') {
@@ -401,7 +388,7 @@ const Activate = () => {
     };
 
     // --- 長押し処理 ---
-    const startPress = (e) => {
+    const startPress = () => {
         if (sigPadEmployee.current && sigPadEmployee.current.isEmpty()) {
             showError("担当者の確認サインを行ってください。");
             return;

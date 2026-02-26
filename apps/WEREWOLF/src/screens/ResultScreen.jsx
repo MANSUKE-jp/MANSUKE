@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Sun, Moon, Loader, FileText, AlertOctagon, Trophy, Frown, RefreshCw, LogOut, Skull, Sparkles, Smile, Copy, Search, X } from 'lucide-react';
-import { getDoc, doc, updateDoc } from 'firebase/firestore';
+import { getDoc, doc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 import { ROLE_DEFINITIONS } from '../constants/gameData';
@@ -14,32 +14,6 @@ import LoadingScreen from '../components/ui/LoadingScreen';
 // コンポーネント: ゲーム結果画面
 // 役割: 勝敗表示、役職開示、ログ確認、再戦・解散操作
 export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, myPlayer, user, maintenanceMode, setNotification }) => {
-    // データロード中表示
-    if (!room || !players || players.length === 0) {
-        return <LoadingScreen message="対戦結果を集計中..." />;
-    }
-
-    // ステータス判定
-    const isAborted = room.status === 'aborted';
-    const isClosed = room.status === 'closed';
-
-    // 勝敗判定フラグ
-    const winner = room.winner;
-    const isCitizenWin = winner === 'citizen';
-    const isFoxWin = winner === 'fox';
-    const isWerewolfWin = winner === 'werewolf';
-    const isTeruteruWin = room.teruteruWon === true; // サーバー側計算結果
-
-    const logs = room.logs || [];
-
-    // 権限フラグ
-    const isHost = room.hostId === user?.uid;
-    const isDev = myPlayer?.isDev === true;
-    const hasControl = isHost || isDev;
-
-    const roomId = room.id || roomCode || "";
-    const matchId = room.matchId || "---";
-
     // UI状態管理
     const [showDetail, setShowDetail] = useState(false); // ログ詳細
     const [showRoleDetail, setShowRoleDetail] = useState(false); // 役職一覧
@@ -53,6 +27,29 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
     // モーダル設定
     const [modalConfig, setModalConfig] = useState(null);
 
+    const safeRoom = room || {};
+
+    // ステータス判定
+    const isAborted = safeRoom.status === 'aborted';
+    const isClosed = safeRoom.status === 'closed';
+
+    // 勝敗判定フラグ
+    const winner = safeRoom.winner;
+    const isCitizenWin = winner === 'citizen';
+    const isFoxWin = winner === 'fox';
+    const isWerewolfWin = winner === 'werewolf';
+    const isTeruteruWin = safeRoom.teruteruWon === true; // サーバー側計算結果
+
+    const logs = safeRoom.logs || [];
+
+    // 権限フラグ
+    const isHost = safeRoom.hostId === user?.uid;
+    const isDev = myPlayer?.isDev === true;
+    const hasControl = isHost || isDev;
+
+    const roomId = safeRoom.id || roomCode || "";
+    const matchId = safeRoom.matchId || "---";
+
     // Effect: 部屋解散検知 -> ホームへ遷移
     useEffect(() => {
         if (isClosed) {
@@ -64,7 +61,9 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
     // リアルタイムなplayers情報と、取得したroleDataをマージする
     // これにより、オンライン状態やステータスの変化が即座に反映される
     const fullPlayers = useMemo(() => {
-        return players.map(p => {
+        const safePlayers = players || [];
+        if (!safePlayers || safePlayers.length === 0) return [];
+        return safePlayers.map(p => {
             const secret = roleData[p.id] || {};
             // 観戦者はroleDataになくてもspectator
             const role = p.isSpectator ? 'spectator' : (secret.role || p.role);
@@ -85,7 +84,9 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
                     const mySecretRef = doc(db, 'artifacts', 'mansuke-jinro', 'public', 'data', 'rooms', roomId, 'players', user.uid, 'secret', 'roleData');
                     const mySecret = await getDoc(mySecretRef);
                     if (mySecret.exists()) setMyTrueRole(mySecret.data().role);
-                } catch (e) { /* silent */ }
+                } catch (error) { 
+                    console.error('Failed to fetch my role:', error);
+                }
             } else if (myPlayer?.isSpectator) {
                 setMyTrueRole('spectator');
             }
@@ -102,18 +103,17 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
                     });
                     setRoleData(newRoleData);
                 }
-            } catch (e) {
-                // silent
+            } catch (error) {
+                console.error('Failed to fetch all player roles:', error);
             } finally {
                 setDataLoaded(true);
             }
         };
 
-        if (room.status === 'finished' || room.status === 'aborted') {
+        if (safeRoom.status === 'finished' || safeRoom.status === 'aborted') {
             fetchRoles();
         }
-    }, [room.status, roomId, user, myPlayer?.isSpectator]);
-    // playersを依存配列から除外して、役職取得APIの過剰な呼び出しを防止
+    }, [safeRoom.status, roomId, user, myPlayer?.isSpectator]);
 
     // Memo: 勝利プレイヤーの抽出
     // 各陣営の勝利条件に基づいてフィルタリング
@@ -144,6 +144,11 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
             return false;
         });
     }, [fullPlayers, dataLoaded, isAborted, isFoxWin, isWerewolfWin, isCitizenWin, isTeruteruWin]);
+
+    // データロード中表示
+    if (!room || !players || players.length === 0) {
+        return <LoadingScreen message="対戦結果を集計中..." />;
+    }
 
     // 個人の勝敗判定 (YOU WIN / YOU LOSE / DRAW)
     let personalResult = null;
@@ -220,8 +225,8 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
         try {
             const fn = httpsCallable(functions, 'resetToLobby');
             await fn({ roomCode: roomId });
-        } catch (e) {
-            setNotification({ message: "エラーが発生しました: " + e.message, type: "error" });
+        } catch (error) {
+            setNotification({ message: "エラーが発生しました: " + error.message, type: "error" });
             setLoading(false);
         }
     };
@@ -245,8 +250,8 @@ export const ResultScreen = ({ room, players, setView, setRoomCode, roomCode, my
                 try {
                     const fn = httpsCallable(functions, 'deleteRoom');
                     await fn({ roomCode: roomId });
-                } catch (e) {
-                    setNotification({ message: "解散に失敗しました: " + e.message, type: "error" });
+                } catch (error) {
+                    setNotification({ message: "解散に失敗しました: " + error.message, type: "error" });
                     setLoading(false);
                 }
             },

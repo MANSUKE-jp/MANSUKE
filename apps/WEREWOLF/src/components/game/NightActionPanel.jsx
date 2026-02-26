@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase.js';
 import { Check, Moon, Lock, Loader, XCircle, CheckCircle, Info, Shield, Eye, Skull, Search, Crosshair, Crown } from 'lucide-react';
@@ -6,61 +6,35 @@ import { ROLE_DEFINITIONS } from '../../constants/gameData.js';
 // LoadingScreen import removed
 
 export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, teammates, roomCode, roomData, lastActionResult, isDone }) => {
-    if (!myPlayer) return null;
-
     // players配列がundefinedの場合の対策
     const safePlayers = players || [];
 
-    // 暗殺者の使用済みチェックなどはここで行わない。サーバーサイドまたはroomDataで管理
-
-    // 受動的役職（探偵・霊媒師）の処理ブロック
-    // ターゲット選択不要。結果を見るだけの役職
-    if (['detective', 'medium'].includes(myRole)) {
-        // 結果が存在するか確認
-        const hasResult = lastActionResult && lastActionResult.length > 0;
-
-        // 表示データの生成。結果がない場合はデフォルトメッセージ
-        const displayCards = hasResult ? lastActionResult : [{ label: myRole === 'detective' ? "調査" : "霊媒", value: "今夜提供できる情報はありません", sub: "", isBad: false, icon: "Info" }];
-
-        // 自動完了処理
-        // 結果表示後、または3秒後に自動的にアクション完了とする
-        useEffect(() => {
-            const timer = setTimeout(() => {
-                onActionComplete();
-            }, 3000);
-
-            if (hasResult) {
-                onActionComplete();
-            }
-            return () => clearTimeout(timer);
-        }, [hasResult, onActionComplete]);
-
-        return (
-            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl ring-4 ring-purple-400/50">
-                <div className="flex flex-col items-center mb-4 gap-2">
-                    <Search size={48} className="text-purple-400" />
-                    <h3 className="text-xl font-bold text-white">以下の情報をご確認ください</h3>
-                </div>
-                <div className="space-y-3 w-full max-w-sm">
-                    {displayCards.map((card, idx) => (
-                        <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center ${card.isBad ? "bg-red-900/30 border-red-500/50" : card.isBad === false ? "bg-blue-900/30 border-blue-500/50" : "bg-gray-800/30 border-gray-600/50"}`}>
-                            <span className="text-xs font-bold text-gray-400 mb-1">{card.label}</span>
-                            <div className={`text-xl font-black ${card.isBad ? "text-red-400" : "text-white"}`}>{card.value}</div>
-                            {card.sub && <div className="text-sm text-gray-300 mt-1">{card.sub}</div>}
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    // 能動的役職（人狼・占い師・騎士・暗殺者など）の処理ブロック
     // ターゲット選択と送信が必要
     const [selectedId, setSelectedId] = useState(null);
     const [confirmed, setConfirmed] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [waitingResult, setWaitingResult] = useState(false);
     const [assassinUsedMsg, setAssassinUsedMsg] = useState(null);
+
+    const isPassive = ['detective', 'medium'].includes(myRole);
+    const hasResult = lastActionResult && lastActionResult.length > 0;
+
+    // 能動的役職（人狼・占い師・騎士・暗殺者など）の処理ブロック
+    // 受動的役職（探偵・霊媒師）の処理ブロック
+    // ターゲット選択不要。結果を見るだけの役職
+    // 自動完了処理
+    // 結果表示後、または3秒後に自動的にアクション完了とする
+    useEffect(() => {
+        if (!isPassive) return;
+        const timer = setTimeout(() => {
+            onActionComplete();
+        }, 3000);
+
+        if (hasResult) {
+            onActionComplete();
+        }
+        return () => clearTimeout(timer);
+    }, [isPassive, hasResult, onActionComplete]);
 
     // チームキー設定
     // 人狼系は同一チーム、暗殺者は独自チームとして扱う
@@ -87,7 +61,6 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
 
     // 合意形成が必要か（ソロでなければ必要）
     const needsConsensus = !isSolo;
-    const leaderName = safePlayers.find(p => p.id === leaderId)?.name || "---";
 
     // 自分の視点でのリーダーID
     const myLeaderId = leaderId || myPlayer.id;
@@ -119,6 +92,7 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
     // 承認状況のリセットや、アクション完了時のUI更新
     useEffect(() => {
         // 提案がなくなれば確認状態を解除
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (!pendingAction) setConfirmed(false);
 
         // アクション完了時の処理
@@ -140,6 +114,33 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         }
     }, [pendingAction, confirmed, isLeader, livingTeammates.length, roomCode, onActionComplete, isActionDone, hasResultWait, lastActionResult]);
 
+    if (!myPlayer) return null;
+
+    // 受動的役職の場合ここで早期リターン
+    if (isPassive) {
+        // 表示データの生成。結果がない場合はデフォルトメッセージ
+        const displayCards = hasResult ? lastActionResult : [{ label: myRole === 'detective' ? "調査" : "霊媒", value: "今夜提供できる情報はありません", sub: "", isBad: false, icon: "Info" }];
+
+        return (
+            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl ring-4 ring-purple-400/50">
+                <div className="flex flex-col items-center mb-4 gap-2">
+                    <Search size={48} className="text-purple-400" />
+                    <h3 className="text-xl font-bold text-white">以下の情報をご確認ください</h3>
+                </div>
+                <div className="space-y-3 w-full max-w-sm">
+                    {displayCards.map((card, idx) => (
+                        <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center ${card.isBad ? "bg-red-900/30 border-red-500/50" : card.isBad === false ? "bg-blue-900/30 border-blue-500/50" : "bg-gray-800/30 border-gray-600/50"}`}>
+                            <span className="text-xs font-bold text-gray-400 mb-1">{card.label}</span>
+                            <div className={`text-xl font-black ${card.isBad ? "text-red-400" : "text-white"}`}>{card.value}</div>
+                            {card.sub && <div className="text-sm text-gray-300 mt-1">{card.sub}</div>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+
     // 提案処理（リーダー用）
     // Functions: nightInteraction / type: propose
     const handlePropose = async () => {
@@ -155,7 +156,8 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
             const fn = httpsCallable(functions, 'nightInteraction');
             await fn({ roomCode, type: 'propose', payload: { targetId: selectedId } });
             setIsSubmitting(false);
-        } catch (e) {
+        } catch (error) {
+            console.error(error);
             setIsSubmitting(false);
         }
     };
@@ -170,7 +172,8 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
             const fn = httpsCallable(functions, 'nightInteraction');
             await fn({ roomCode, type: 'vote', payload: { approve } });
             setTimeout(() => setIsSubmitting(false), 2000);
-        } catch (e) {
+        } catch (error) {
+            console.error(error);
             setIsSubmitting(false);
         }
     };

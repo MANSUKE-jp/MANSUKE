@@ -52,14 +52,12 @@ export const uploadPrepaidCards = async (data, mapping, onProgress) => {
     // Cloud Functions の関数参照を取得
     const importCardsFunction = httpsCallable(functions, 'importCards');
 
-    try {
-
-        for (const [index, chunk] of chunks.entries()) {
-            // 必要なデータのみ抽出して軽量化
-            const payload = chunk.map(row => ({
-                publicCode: String(row[mapping.publicCode] || '').trim(),
-                pinCode: String(row[mapping.pinCode] || '').trim()
-            })).filter(item => item.publicCode && item.pinCode);
+    for (const chunk of chunks) {
+        // 必要なデータのみ抽出して軽量化
+        const payload = chunk.map(row => ({
+            publicCode: String(row[mapping.publicCode] || '').trim(),
+            pinCode: String(row[mapping.pinCode] || '').trim()
+        })).filter(item => item.publicCode && item.pinCode);
 
             if (payload.length > 0) {
                 // Cloud Functions 呼び出し
@@ -79,7 +77,4 @@ export const uploadPrepaidCards = async (data, mapping, onProgress) => {
 
         return { success: true, count: totalSuccess, skipped: totalSkipped };
 
-    } catch (error) {
-        throw error;
-    }
 };
