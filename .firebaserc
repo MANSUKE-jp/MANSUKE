@@ -1,0 +1,27 @@
+{
+  "projects": {
+    "default": "mansuke-app"
+  },
+  "targets": {
+    "mansuke-app": {
+      "hosting": {
+        "hirusupa": [
+          "mansuke-hirusupa"
+        ],
+        "werewolf": [
+          "mansuke-werewolf"
+        ],
+        "mymansuke": [
+          "mymansuke"
+        ],
+        "homepage": [
+          "mansuke-homepage"
+        ],
+        "prepaid-card": [
+          "mansuke-prepaid"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

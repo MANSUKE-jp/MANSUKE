@@ -1,0 +1,1245 @@
+/* ═══════════════════════════════════════════════════════════════
+   MANSUKE Account — Design System v4 (Modern Attractive Light Theme)
+   Fonts: Oswald (display) · Inter + Noto Sans JP (body)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tokens ──────────────────────────────────────────────────── */
+:root {
+    /* Backgrounds */
+    --bg: #f8fafc;
+    /* 洗練された明るいオフホワイト */
+    --surface: #ffffff;
+    --surface-2: #f1f5f9;
+    --sidebar-bg: rgba(255, 255, 255, 0.85);
+
+    /* Text */
+    --text: #0f172a;
+    /* やや青みがかったモダンなダークグレー */
+    --text-2: #475569;
+    --text-3: #94a3b8;
+
+    /* Brand */
+    --gold: #d4af37;
+    /* より上品で鮮やかなゴールド */
+    --gold-light: #fef08a;
+    --neon: #ccff00;
+    --ink: #0f172a;
+
+    /* Borders */
+    --border: #e2e8f0;
+    --border-2: #cbd5e1;
+
+    /* Status */
+    --green: #10b981;
+    --green-bg: #ecfdf5;
+    --green-border: #a7f3d0;
+    --red: #ef4444;
+    --red-bg: #fef2f2;
+    --red-border: #fecaca;
+    --amber: #f59e0b;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+
+    /* Gradient (logo) */
+    --grad: linear-gradient(135deg, #3b82f6 0%, #10b981 50%, #d4af37 100%);
+
+    /* Spacing */
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 48px;
+    --s8: 64px;
+
+    /* Type */
+    --font-d: 'Oswald', 'Noto Sans JP', sans-serif;
+    --font-b: 'Inter', 'Noto Sans JP', sans-serif;
+    --xs: 12px;
+    --sm: 14px;
+    --base: 16px;
+    --md: 18px;
+    --lg: 24px;
+    --xl: 36px;
+    --xxl: 48px;
+
+    /* Effects */
+    --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.05);
+    --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    --shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.12);
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s ease;
+
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+}
+
+/* ── Legacy variable aliases (for React Inline Styles Compat) ─────── */
+:root {
+    --spacing-xs: 6px;
+    --spacing-sm: 10px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-md: 18px;
+    --font-size-lg: 22px;
+    --font-size-xl: 28px;
+    --font-size-2xl: 36px;
+    --accent-emerald: #10b981;
+    --accent-rose: #ef4444;
+    --accent-amber: #f59e0b;
+    --accent-indigo: #0f172a;
+    /* インクカラーに寄せてシックに */
+    --accent-violet: #d4af37;
+    /* ゴールドに統一 */
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --gradient-primary: linear-gradient(135deg, #3b82f6, #10b981, #d4af37);
+    --radius-md: 16px;
+    --radius-xl: 32px;
+    --bg-base: #f8fafc;
+}
+
+/* ── Reset ───────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    font-family: var(--font-b);
+    font-size: var(--base);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "palt";
+    line-height: 1.6;
+}
+
+#root {
+    height: 100%;
+}
+
+a {
+    color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════
+   APP SHELL
+   ═══════════════════════════════════════════════════ */
+.app-shell {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.nav-sidebar {
+    width: 280px;
+    /* 広げてゆったりと */
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(226, 232, 240, 0.5);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.02);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 10;
+}
+
+.sidebar-logo {
+    padding: 32px 28px 24px;
+}
+
+.sidebar-logo-title {
+    font-family: var(--font-d);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+}
+
+.sidebar-logo-sub {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+    margin-top: 4px;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 16px 0;
+}
+
+.sidebar-nav-label {
+    font-family: var(--font-d);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    padding: 0 28px;
+    margin: 16px 0 8px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    margin: 4px 16px;
+    border-radius: var(--radius-sm);
+    font-size: var(--sm);
+    font-weight: 600;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.nav-item:hover {
+    color: var(--text);
+    background: var(--surface-2);
+}
+
+.nav-item.active {
+    color: #ffffff;
+    background: var(--ink);
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-item.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.sidebar-user {
+    padding: 24px;
+}
+
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    background: var(--surface-2);
+    margin-bottom: 12px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--grad);
+    color: #fff;
+    font-family: var(--font-d);
+    font-weight: 700;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.user-info-name {
+    font-size: var(--sm);
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-info-email {
+    font-size: 11px;
+    color: var(--text-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Account Widget (HIRUSUPA Design Port) ─────────────── */
+.account-widget-container {
+    position: relative;
+    width: 100%;
+}
+
+.account-widget-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+}
+
+.account-widget-button {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 20px 10px 10px;
+    border-radius: 99px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    width: 100%;
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+}
+
+.account-widget-button.collapsed {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    color: var(--ink);
+}
+
+.account-widget-button.collapsed:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.account-widget-button.expanded {
+    background: #4f46e5;
+    border-color: #6366f1;
+    color: white;
+}
+
+.widget-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(to top right, #6366f1, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid white;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.widget-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(to top right, #6366f1, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid white;
+    color: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    margin: 0 auto 12px;
+}
+
+.widget-avatar img,
+.widget-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.widget-name-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    overflow: hidden;
+    padding-right: 8px;
+    flex: 1;
+}
+
+.widget-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.widget-name-text {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.widget-subtitle {
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.widget-popup-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.widget-popup-email {
+    font-size: 12px;
+    color: var(--text-3);
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 16px;
+}
+
+.widget-popup-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.widget-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 12px;
+    transition: background 0.2s;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    font-family: inherit;
+    color: var(--text-2);
+}
+
+.widget-menu-item:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.widget-menu-item.danger {
+    color: var(--red);
+}
+
+/* ── Content area ─────────────────────────────────────────── */
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    position: relative;
+}
+
+.content-inner {
+    max-width: 1000px;
+    /* 画面全体をゆったり使う */
+    margin: 0 auto;
+    padding: 64px 48px;
+}
+
+/* ── Page header ──────────────────────────────────────────── */
+.page-header {
+    margin-bottom: var(--s8);
+    position: relative;
+    padding-bottom: 16px;
+}
+
+.page-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 4px;
+    background: var(--gold);
+    border-radius: 2px;
+}
+
+.page-title {
+    font-family: var(--font-d);
+    font-size: var(--xxl);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 12px;
+}
+
+.page-subtitle {
+    font-size: var(--base);
+    color: var(--text-2);
+    letter-spacing: 0.02em;
+}
+
+.gradient-text {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════
+   COMPONENTS
+   ═══════════════════════════════════════════════════ */
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2);
+    padding: 14px 28px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-d);
+    font-size: var(--sm);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-primary {
+    background: var(--ink);
+    color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #1e293b;
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.btn-gold {
+    background: var(--gold);
+    color: #fff;
+}
+
+.btn-gold:hover:not(:disabled) {
+    background: #b8942e;
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1.5px solid var(--border-2);
+    box-shadow: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    border-color: var(--ink);
+    background: var(--surface-2);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-2);
+    box-shadow: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+    background: var(--surface-2);
+    color: var(--ink);
+}
+
+.btn-danger {
+    background: var(--red-bg);
+    color: var(--red);
+    box-shadow: none;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--red);
+    color: #fff;
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.btn-full {
+    width: 100%;
+}
+
+/* ── Inputs ───────────────────────────────────────────────── */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-label {
+    font-size: var(--xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-2);
+}
+
+.input-field {
+    width: 100%;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-b);
+    font-size: var(--base);
+    color: var(--text);
+    outline: none;
+    transition: all var(--transition);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.input-field:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+    background: #ffffff;
+}
+
+.input-field::placeholder {
+    color: var(--text-3);
+}
+
+/* ── Cards ────────────────────────────────────────────────── */
+.section-card {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: box-shadow var(--transition);
+}
+
+.section-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    padding: var(--s5) var(--s6);
+    border-bottom: 1px solid var(--border);
+    background: transparent;
+    font-family: var(--font-d);
+    font-size: var(--md);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.section-body {
+    padding: var(--s6);
+}
+
+/* ── Info rows ─────────────────────────────────────────────── */
+.info-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s6);
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: var(--sm);
+    font-weight: 700;
+    color: var(--text-2);
+    min-width: 140px;
+    flex-shrink: 0;
+}
+
+.info-value {
+    font-size: var(--base);
+    color: var(--text);
+    font-weight: 500;
+}
+
+/* ── Badges ────────────────────────────────────────────────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: var(--xs);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 99px;
+    border: none;
+}
+
+.badge-approved {
+    color: var(--green);
+    background: var(--green-bg);
+}
+
+.badge-pending {
+    color: var(--amber);
+    background: var(--amber-bg);
+}
+
+.badge-rejected {
+    color: var(--red);
+    background: var(--red-bg);
+}
+
+/* ── KYC Banners ───────────────────────────────────────────── */
+.kyc-banner {
+    padding: var(--s6);
+    border-radius: var(--radius-lg);
+    border: none;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.kyc-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 6px;
+}
+
+.kyc-banner.pending {
+    background: linear-gradient(145deg, #fffbeb, #fef3c7);
+}
+
+.kyc-banner.pending::before {
+    background: var(--amber);
+}
+
+.kyc-banner.approved {
+    background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+}
+
+.kyc-banner.approved::before {
+    background: var(--green);
+}
+
+.kyc-banner.rejected {
+    background: linear-gradient(145deg, #fef2f2, #fee2e2);
+}
+
+.kyc-banner.rejected::before {
+    background: var(--red);
+}
+
+/* ── Modals ────────────────────────────────────────────────── */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s5);
+    /* ラジアルグラジェントで中央が明るく周囲が暗くなるナチュラルな演出 */
+    background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.78) 100%);
+    backdrop-filter: blur(10px) saturate(0.7);
+    animation: backdropIn 0.2s ease both;
+}
+
+@keyframes backdropIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-panel {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    animation: panelIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes panelIn {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ── Passkey items ─────────────────────────────────────────── */
+.passkey-item {
+    display: flex;
+    align-items: center;
+    gap: var(--s4);
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--border);
+}
+
+.passkey-item:last-child {
+    border-bottom: none;
+}
+
+/* ── Spinner ───────────────────────────────────────────────── */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner-dark {
+    border-color: var(--border-2);
+    border-top-color: var(--text);
+}
+
+/* ── Page transition ───────────────────────────────────────── */
+.page-enter {
+    animation: pageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════
+   AUTH PAGES (Login / Register / Passkey)
+   ═══════════════════════════════════════════════════ */
+
+/* Common auth wrapper */
+.auth-page {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Login ─────────────────────────────────────────────────── */
+.login-card {
+    width: 100%;
+    max-width: 440px;
+    /* 白いカード背景と影を消して背景に馴染ませる */
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-logo {
+    font-family: var(--font-d);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.login-logo-sub {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    display: block;
+}
+
+.login-title {
+    font-family: var(--font-d);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+/* ── Divider ───────────────────────────────────────────────── */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    margin: 24px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-divider span {
+    font-size: var(--xs);
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Google button */
+.btn-google {
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    width: 100%;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s3);
+    cursor: pointer;
+    font-family: var(--font-b);
+    font-size: var(--base);
+    font-weight: 600;
+    transition: all var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-google:hover {
+    border-color: var(--border-2);
+    background: var(--surface-2);
+    transform: translateY(-1px);
+}
+
+/* ── Register wizard ───────────────────────────────────────── */
+.register-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.register-form-container {
+    width: 100%;
+    /* フォーム幅を広げて全画面をゆったり使う */
+    max-width: 680px;
+}
+
+/* Checkbox rows */
+.checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s3);
+    padding: 12px 0;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--border-2);
+    border-radius: 4px;
+    accent-color: var(--gold);
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+}
+
+.checkbox-row label {
+    font-size: var(--base);
+    color: var(--text);
+    cursor: pointer;
+    line-height: 1.6;
+}
+
+.checkbox-row a {
+    color: var(--gold);
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+/* Error box */
+.error-box {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s2);
+    background: var(--red-bg);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    font-size: var(--sm);
+    color: var(--red);
+    line-height: 1.6;
+    margin-bottom: var(--s4);
+}
+
+/* ── Passkey verify page ─────────────────────────────────── */
+.passkey-page {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+.passkey-card {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 56px 40px;
+    width: 100%;
+    max-width: 440px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 1;
+}
+
+.passkey-icon-ring {
+    width: 80px;
+    height: 80px;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    background: linear-gradient(145deg, #fffbeb, #fef3c7);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════
+   MISC
+   ═══════════════════════════════════════════════════ */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-2);
+    border-radius: 10px;
+}
+
+/* Date picker */
+.date-picker {
+    display: flex;
+    gap: 16px;
+}
+
+.date-select {
+    width: 100%;
+    padding: 16px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-b);
+    font-size: var(--base);
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.date-select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.15);
+}
+
+/* Input hint */
+.input-hint {
+    font-size: var(--xs);
+    color: var(--text-3);
+    text-align: right;
+    margin-top: 6px;
+}
+
+/* Checkbox wrapper (register style) */
+.checkbox-wrapper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition);
+    user-select: none;
+    background: var(--surface);
+}
+
+.checkbox-wrapper:hover {
+    border-color: var(--border-2);
+    box-shadow: var(--shadow-sm);
+}
+
+.checkbox-wrapper.checked {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.checkbox-box {
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid var(--border-2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all var(--transition-fast);
+}
+
+.checkbox-box.checked {
+    background: var(--gold);
+    border-color: var(--gold);
+}
+
+/* ── Background Orbs for Auth Pages ───────────────────────── */
+.bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.bg-orb-1 {
+    width: 400px;
+    height: 400px;
+    background: rgba(212, 175, 55, 0.2);
+    top: -100px;
+    right: -100px;
+}
+
+.bg-orb-2 {
+    width: 300px;
+    height: 300px;
+    background: rgba(16, 185, 129, 0.15);
+    bottom: -50px;
+    left: -50px;
+}
+
+.bg-orb-3 {
+    width: 500px;
+    height: 500px;
+    background: rgba(59, 130, 246, 0.15);
+    bottom: -150px;
+    right: -150px;
+}
+
+/* Glass effect utility */
+.glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.card {
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}

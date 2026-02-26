@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // history コレクション: ダッシュボードのカウント取得（read）のみ許可
+    match /history/{docId} {
+      allow read: if request.auth != null; 
+      allow write: if false; // サーバーサイド(Functions)のみ作成・更新・削除を許可
+    }
+
+    // radio_names コレクション
+    match /radio_names/{docId} {
+      allow read, write: if false; // サーバーサイド(Functions)のみ作成・更新・削除を許可
+    }
+
+    // users コレクション: ユーザー自身のドキュメントの読み取りと、特定のフィールド以外の更新を許可
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // balance, geminiUsage などの重要フィールドはクライアントからは更新不可にする
+      allow write: if request.auth != null && request.auth.uid == userId 
+                   && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['balance', 'geminiUsage']);
+    }
+
+    // デフォルト: 上記以外へのアクセスは全て拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

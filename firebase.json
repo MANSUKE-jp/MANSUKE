@@ -1,0 +1,153 @@
+{
+    "hosting": [
+        {
+            "target": "hirusupa",
+            "public": "apps/HIRUSUPA/dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**"
+            ],
+            "rewrites": [
+                {
+                    "source": "/api/verifyMansukeToken",
+                    "function": "werewolfVerifyMansukeToken"
+                },
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
+            "target": "werewolf",
+            "public": "apps/WEREWOLF/dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**"
+            ],
+            "rewrites": [
+                {
+                    "source": "/api/verifyMansukeToken",
+                    "function": "werewolfVerifyMansukeToken",
+                    "region": "asia-northeast2"
+                },
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
+            "target": "mymansuke",
+            "public": "apps/MyMANSUKE/dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**"
+            ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
+            "target": "prepaid-card",
+            "public": "apps/PREPAID-CARD/dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**"
+            ],
+            "rewrites": [
+                {
+                    "source": "/api/verifyMansukeToken",
+                    "function": "werewolfVerifyMansukeToken",
+                    "region": "asia-northeast2"
+                },
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
+            "target": "homepage",
+            "public": "apps/HOMEPAGE/public",
+            "ignore": [
+                "firebase.json",
+                "**/.*"
+            ]
+        }
+    ],
+    "functions": [
+        {
+            "source": "apps/HIRUSUPA/functions",
+            "codebase": "hirusupa-functions",
+            "disallowLegacyRuntimeConfig": true,
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log",
+                "*.local"
+            ]
+        },
+        {
+            "source": "apps/WEREWOLF/functions",
+            "codebase": "werewolf-functions",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log",
+                "*.local"
+            ]
+        },
+        {
+            "source": "apps/MyMANSUKE/functions",
+            "codebase": "mymansuke-functions",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log",
+                "*.local"
+            ]
+        },
+        {
+            "source": "apps/PREPAID-CARD/functions",
+            "codebase": "prepaid-functions",
+            "ignore": [
+                "node_modules",
+                ".git",
+                "firebase-debug.log",
+                "firebase-debug.*.log",
+                "*.local"
+            ]
+        }
+    ],
+    "firestore": [
+        {
+            "database": "hirusupa",
+            "rules": "firestore/hirusupa.rules"
+        },
+        {
+            "database": "werewolf",
+            "rules": "firestore/werewolf.rules",
+            "indexes": "firestore/werewolf.indexes.json"
+        },
+        {
+            "database": "users",
+            "rules": "firestore/users.rules",
+            "indexes": "firestore/users.indexes.json"
+        },
+        {
+            "database": "prepaid-card",
+            "rules": "firestore/prepaid-card.rules"
+        }
+    ]
+}

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja" class="no-js">
+
+<head>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5961208485908734"
+        crossorigin="anonymous"></script>
+
+    <!-- 修正: 初期化コードを先に記述し、Service Workerのパスも明示しました -->
+    <script>
+        window.PushCodeInit = function () {
+            try {
+                // typeof チェックを追加して、より安全に判定するようにしました
+                if (typeof PushCode !== 'undefined' && PushCode.isSupport()) {
+                    PushCode.init({
+                        domainToken: '84d3b20329672cf5b1327e89d9e9c2ea556dafd48f0ec11c9997444297717209',
+                        userid: '',
+                        worker: './pushcode_sw.js' // ServiceWorkerのファイルパスを明示的に指定
+                    });
+                    PushCode.components.openSubscribeDialog();
+                }
+            }
+            catch (err) {
+                if (typeof PushCode !== 'undefined') {
+                    PushCode.sendError(err);
+                }
+            }
+        };
+    </script>
+    <!-- 本体スクリプトの読み込み -->
+    <script src="https://www.pushcode.jp/dist/js/pushcode.js"></script>
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MANSUKE</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&family=Noto+Sans+JP:wght@400;700;900&family=Oswald:wght@500;700&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.4/ScrollTrigger.min.js"></script>
+    <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans JP', 'sans-serif'],
+                        display: ['Oswald', 'sans-serif'],
+                    },
+                    colors: {
+                        gold: '#d5b263',
+                        neon: '#ccff00',
+                        dark: '#0a0a0a',
+                        'dark-acc': '#111111'
+                    },
+                    animation: {
+                        'marquee': 'marquee 15s linear infinite',
+                        'gradient-x': 'gradient-x 3s ease infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-50%)' },
+                        },
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-black text-white selection:bg-gold selection:text-black">
+
+    <div class="noise-overlay"></div>
+
+    <div class="custom-cursor" id="cursor"></div>
+
+    <div class="loader" id="loader">
+        <div class="relative flex flex-col items-center">
+            <h1
+                class="text-5xl md:text-9xl font-display font-bold tracking-widest mb-6 animate-gradient-x bg-gradient-to-r from-blue-600 via-teal-400 to-green-500 bg-clip-text text-transparent pb-2">
+                MANSUKE
+            </h1>
+
+            <div class="loader-bar-container">
+                <div class="loader-bar" id="loader-bar"></div>
+            </div>
+
+            <p class="mt-4 text-xs font-mono text-gray-500 tracking-[0.2em]">
+                LOADING <span id="loader-text" class="text-white font-bold">0%</span>
+            </p>
+
+            <p class="mt-8 text-sm md:text-base text-gold font-display font-bold tracking-[0.2em] uppercase opacity-70">
+                Powered By Cerinal
+            </p>
+        </div>
+    </div>
+
+    <div class="menu-overlay" id="menu-overlay">
+        <div class="flex flex-col h-full justify-center space-y-12">
+
+            <!-- Web Apps (JSで生成) -->
+            <div>
+                <span
+                    class="text-gold text-xs tracking-[0.2em] font-bold block mb-6 uppercase border-b border-gray-800 pb-2">Web
+                    Apps</span>
+                <nav id="nav-webapps" class="flex flex-col space-y-4">
+                    <!-- JS Injected -->
+                </nav>
+            </div>
+
+            <!-- About Mansuke を削除しました -->
+
+            <!-- LEGAL (JSで生成) -->
+            <div>
+                <span
+                    class="text-gold text-xs tracking-[0.2em] font-bold block mb-6 uppercase border-b border-gray-800 pb-2">LEGAL</span>
+                <nav id="nav-legal" class="flex flex-col space-y-4">
+                    <!-- JS Injected -->
+                </nav>
+            </div>
+
+        </div>
+    </div>
+
+    <header
+        class="fixed top-0 left-0 w-full p-6 md:p-10 z-[70] flex justify-between items-start pointer-events-none mix-blend-difference">
+        <div>
+            <a href="#"
+                class="block text-2xl font-bold font-display tracking-tighter pointer-events-auto hover-trigger text-white">MANSUKE</a>
+            <span class="text-[10px] tracking-[0.2em] uppercase opacity-70 block mt-1 text-white">Powered By
+                Cerinal</span>
+        </div>
+        <button id="menu-btn"
+            class="pointer-events-auto hover-trigger group flex flex-col items-end gap-1.5 z-[80] relative">
+            <span class="menu-line-1 w-8 h-[2px] bg-white group-hover:w-10 transition-all duration-300"></span>
+            <span class="menu-line-2 w-6 h-[2px] bg-white group-hover:w-10 transition-all duration-300 delay-75"></span>
+            <span class="sr-only">Toggle Menu</span>
+        </button>
+    </header>
+
+    <main id="main-content" class="w-full opacity-0 transition-opacity duration-1000">
+
+        <!-- 上部の隙間を消すために -mt-[1px] を追加しました -->
+        <section
+            class="relative h-screen min-h-[100dvh] w-full overflow-hidden flex items-center justify-center bg-black -mt-[1px] pt-0"
+            id="hero">
+
+            <div id="slider-container" class="absolute inset-0 w-full h-full">
+            </div>
+
+            <div
+                class="absolute bottom-0 left-0 w-full p-8 md:p-20 flex flex-col md:flex-row items-end justify-between z-10">
+                <div class="max-w-2xl mb-10 md:mb-0 relative overflow-hidden min-h-[300px] flex flex-col justify-end">
+
+                    <div id="slide-text-content" class="translate-y-0 opacity-100">
+                        <span id="slide-subtitle"
+                            class="text-gold text-sm tracking-[0.3em] font-bold mb-4 block animate-pulse"></span>
+                        <h1 id="slide-title"
+                            class="text-5xl md:text-8xl font-display font-bold leading-[0.9] mb-6 uppercase"></h1>
+                        <p id="slide-desc" class="text-gray-400 text-sm md:text-base max-w-md leading-relaxed mb-8"></p>
+                        <a id="slide-link" href="#"
+                            class="hover-trigger relative inline-block px-8 py-3 border border-white/30 rounded-full overflow-hidden group bg-transparent">
+                            <span
+                                class="absolute inset-0 w-full h-full bg-white transform -translate-x-full transition-transform duration-300 group-hover:translate-x-0"></span>
+                            <span
+                                class="relative z-10 text-white group-hover:text-black font-bold tracking-widest text-sm transition-colors duration-300">EXPLORE
+                                MORE</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <span id="current-slide" class="text-3xl font-display font-bold">01</span>
+                    <div class="w-16 h-[1px] bg-gray-700 relative overflow-hidden">
+                        <div id="slide-progress" class="absolute top-0 left-0 h-full bg-gold w-0"></div>
+                    </div>
+                    <span class="text-xs text-gray-500" id="total-slides">03</span>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="apps-section" class="relative h-screen bg-dark-acc overflow-hidden">
+            <div class="absolute top-32 left-10 md:left-20 z-10">
+                <h2 class="text-xl md:text-3xl font-display font-bold uppercase tracking-widest text-gray-500">Works
+                </h2>
+            </div>
+
+            <div id="apps-wrapper"
+                class="h-full flex items-center pl-10 md:pl-20 horizontal-container will-change-transform">
+
+                <div
+                    class="w-[80vw] md:w-[40vw] h-[60vh] md:h-[70vh] flex-shrink-0 flex flex-col justify-center mr-10 md:mr-24 pr-10 border-r border-white/10">
+                    <h3 class="text-5xl md:text-8xl font-display font-bold mb-6 leading-none">
+                        OUR <br> <span class="text-gold">APPS</span>
+                    </h3>
+                    <p class="text-gray-400 text-lg max-w-sm">
+                        本気を出して開発したアプリケーションです。
+                    </p>
+                    <div class="mt-8 flex items-center gap-2 text-sm text-gray-500">
+                        <i data-lucide="arrow-right" class="w-5 h-5 animate-bounce"></i>
+                        <span>スクロールの向きが変わります</span>
+                    </div>
+                </div>
+
+                <div
+                    class="group hover-trigger w-[85vw] md:w-[50vw] h-[60vh] md:h-[70vh] flex-shrink-0 relative mr-10 md:mr-16 bg-[#1a1a1a] overflow-hidden">
+                    <img src="https://i.imghippo.com/files/t9845ZbY.png"
+                        class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
+                        alt="App 1">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent p-8 md:p-12 flex flex-col justify-end">
+                        <span class="text-gold text-xs tracking-widest mb-2 font-bold">New App!!</span>
+                        <h4
+                            class="text-4xl md:text-6xl font-display font-bold uppercase mb-4 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                            HIRUSUPA</h4>
+                        <p
+                            class="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 max-w-md">
+                            近高放送部にリクエストを連投するアプリです。
+                        </p>
+                    </div>
+                </div>
+
+                <div
+                    class="group hover-trigger w-[85vw] md:w-[50vw] h-[60vh] md:h-[70vh] flex-shrink-0 relative mr-10 md:mr-16 bg-[#1a1a1a] overflow-hidden">
+                    <img src="https://i.imghippo.com/files/qpDV9295cJk.png"
+                        class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
+                        alt="App 3">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent p-8 md:p-12 flex flex-col justify-end">
+                        <span class="text-gold text-xs tracking-widest mb-2 font-bold">Developing</span>
+                        <h4
+                            class="text-4xl md:text-6xl font-display font-bold uppercase mb-4 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                            New WEREWOLF</h4>
+                        <p
+                            class="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 max-w-md">
+                            MANSUKE WEREWOLFを改造しています。
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <section id="about-section"
+            class="relative py-32 bg-black flex flex-col items-center justify-center overflow-hidden">
+            <div class="container mx-auto px-6 relative z-10 text-center">
+                <div class="mb-10 overflow-hidden">
+                    <p
+                        class="text-gold text-sm tracking-[0.5em] font-bold uppercase mb-4 animate-on-scroll translate-y-full will-change-transform">
+                        About Us</p>
+                </div>
+
+                <h2 class="text-4xl md:text-7xl font-bold font-sans leading-tight mb-12 max-w-4xl mx-auto">
+                    <!-- アニメーションをスムーズにするため will-change-transform クラスを追加 -->
+                    <span class="block overflow-hidden"><span
+                            class="block animate-on-scroll translate-y-full will-change-transform">「まんすけ」を</span></span>
+                    <span class="block overflow-hidden"><span
+                            class="block animate-on-scroll translate-y-full delay-100 will-change-transform">ブランドに</span></span>
+                    <span class="block overflow-hidden"><span
+                            class="block animate-on-scroll translate-y-full delay-200 will-change-transform">してみました。</span></span>
+                </h2>
+
+                <p
+                    class="text-gray-500 max-w-2xl mx-auto leading-loose animate-on-scroll opacity-0 translate-y-10 delay-300 will-change-transform">
+                    お馴染みのまんすけですが、少し覚醒させたかったので、
+                    ブランドとして再構築しました。
+                </p>
+            </div>
+
+            <div class="w-full bg-neon py-6 mt-32 transform -rotate-2 scale-110 origin-center border-y-4 border-black">
+                <div class="marquee-container">
+                    <div class="marquee-content animate-marquee whitespace-nowrap">
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                        <span
+                            class="text-black font-display font-black text-6xl md:text-8xl italic mx-8 outline-text">MANSUKE
+                            WSP!!</span>
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                        <span
+                            class="text-black font-display font-black text-6xl md:text-8xl italic mx-8 outline-text">MANSUKE
+                            WSP!!</span>
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                    </div>
+                    <div class="marquee-content animate-marquee whitespace-nowrap" aria-hidden="true">
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                        <span
+                            class="text-black font-display font-black text-6xl md:text-8xl italic mx-8 outline-text">MANSUKE
+                            WSP!!</span>
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                        <span
+                            class="text-black font-display font-black text-6xl md:text-8xl italic mx-8 outline-text">MANSUKE
+                            WSP!!</span>
+                        <span class="text-black font-display font-black text-6xl md:text-8xl italic mx-8">MANSUKE
+                            WSP!!</span>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+
+        <footer id="team-section"
+            class="relative w-full bg-gold text-black py-20 px-6 md:px-20 overflow-hidden min-h-[80vh] flex flex-col justify-between">
+
+            <!-- 左右2カラムレイアウトに変更しました -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-20">
+
+                <div class="flex flex-col items-start justify-center">
+                    <h2 class="text-6xl md:text-9xl font-black font-display leading-[0.85] tracking-tighter uppercase">
+                        <span class="block hover:translate-x-4 transition-transform duration-300">Powered</span>
+                        <span class="block hover:translate-x-4 transition-transform duration-300 delay-75">By</span>
+                        <span
+                            class="block hover:translate-x-4 transition-transform duration-300 delay-150 text-[#293040]">Cerinal</span>
+                    </h2>
+                </div>
+                <div class="flex flex-col justify-center gap-10">
+
+                    <!-- LEGAL -->
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="font-bold border-b border-black pb-2 mb-4 uppercase tracking-widest text-xs">
+                                LEGAL</h3>
+                            <div id="footer-legal" class="flex flex-col gap-2">
+                                <!-- JS Injected -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="font-bold border-b border-black pb-2 mb-4 uppercase tracking-widest text-xs">
+                                Contact</h3>
+                            <div id="footer-contact" class="flex flex-col gap-4">
+                                <!-- JS Injected -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="mt-20 pt-10 border-t border-black/20 flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                <p class="text-xs font-mono font-bold uppercase tracking-widest opacity-80">
+                    Copyright © 2026 MANSUKE <br class="md:hidden"> - Powered by Cerinal. All Rights Reserved.
+                </p>
+                <div class="text-4xl animate-bounce">
+                    <i data-lucide="arrow-up-circle" class="w-10 h-10 hover-trigger cursor-pointer"
+                        onclick="window.scrollTo(0,0)"></i>
+                </div>
+            </div>
+        </footer>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  /**
+   * MANSUKE Account — Firestore Security Rules
+   * Database: "users" (NOT "default")
+   *
+   * Architecture:
+   * - All WRITES are done exclusively via Cloud Functions (Admin SDK) which bypass rules.
+   * - Clients can only READ their own document.
+   * - Other users can read only the public nickname field.
+   * - The "challenges" collection is server-only.
+   */
+  match /databases/{database}/documents {
+
+    // ── User documents ──────────────────────────────────────────────
+    match /users/{userId} {
+
+      // A user can read their own full document
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // NO client-side writes — all writes go through Cloud Functions (Admin SDK)
+      allow write: if false;
+
+      // Transactions subcollection — user can read their own only
+      match /transactions/{txId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    // ── Challenge documents (WebAuthn) ──────────────────────────────
+    // Entirely server-managed; no client access
+    match /challenges/{challengeId} {
+      allow read, write: if false;
+    }
+
+    // ── Default deny everything else ────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

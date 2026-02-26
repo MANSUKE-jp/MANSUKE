@@ -1,0 +1,349 @@
+/* Tailwind CSSの基本ディレクティブ読み込み */
+/* base: ブラウザリセット等 */
+/* components: コンポーネントクラス */
+/* utilities: ユーティリティクラス */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ベースレイヤーのカスタマイズ */
+/* アプリケーション全体に適用される基本スタイル */
+@layer base {
+  body {
+    /* 背景色: bg-gray-950 (ダークテーマ) */
+    /* 文字色: text-gray-100 (白に近いグレー) */
+    /* アンチエイリアス有効化 */
+    @apply bg-gray-950 text-gray-100 antialiased;
+
+    /* スクロール制御 */
+    /* overflow-hiddenは削除済み (スクロール可能にするため) */
+    /* モバイルブラウザでのプルリフレッシュやバウンス効果を無効化 */
+    overscroll-behavior-y: none;
+  }
+}
+
+/* ユーティリティレイヤーの拡張 */
+/* 独自のクラス定義やアニメーションを追加 */
+@layer utilities {
+  /* --- カスタムスクロールバー設定 (Webkit系ブラウザ用) --- */
+
+  /* スクロールバー全体の幅と高さ */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* スクロールバーの軌道 (背景) */
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  /* スクロールバーのつまみ (ドラッグ部分) */
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+    /* gray-600相当 */
+    border-radius: 3px;
+  }
+
+  /* つまみのホバー時スタイル */
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.8);
+    /* gray-500相当 */
+  }
+
+  /* --- カスタムアニメーションユーティリティ --- */
+
+  /* フェードイン (不透明度 0 -> 1) */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  /* フェードインアップ (下から浮き上がる) */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+
+  /* ゆっくりとしたバウンス (注目を集める要素用) */
+  .animate-bounce-slow {
+    animation: bounce 3s infinite;
+  }
+
+  /* プログレスバー伸長 (幅 0% -> 100%) */
+  .animate-progress-bar {
+    animation: progress linear forwards;
+  }
+
+  /* 幅縮小 (幅 100% -> 0%): タイマーバーなどに使用 */
+  .animate-shrink-width {
+    animation: shrinkWidth linear forwards;
+  }
+
+  /* --- キーフレーム定義 --- */
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes progress {
+    from {
+      width: 0%;
+    }
+
+    to {
+      width: 100%;
+    }
+  }
+
+  @keyframes shrinkWidth {
+    from {
+      width: 100%;
+    }
+
+    to {
+      width: 0%;
+    }
+  }
+
+  @keyframes shimmerGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-shimmer-logo {
+    background-size: 200% auto;
+    animation: shimmerGradient 3s linear infinite;
+  }
+}
+
+/* モバイル対応リセット */
+/* タップ時のハイライト色を透明にする (ネイティブアプリ風の挙動) */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Account Widget (MyMANSUKE Sync) ─────────────── */
+.account-widget-container {
+  width: 100%;
+}
+
+.account-widget-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.account-widget-button {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px 10px 10px;
+  border-radius: 99px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  width: auto;
+  cursor: pointer;
+  text-align: left;
+  outline: none;
+}
+
+.account-widget-button.collapsed {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #0f172a;
+}
+
+.account-widget-button.collapsed:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.account-widget-button.expanded {
+  background: #4f46e5;
+  border-color: #6366f1;
+  color: white;
+}
+
+.widget-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(to top right, #6366f1, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid white;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.widget-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(to top right, #6366f1, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 2px solid white;
+  color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  margin: 0 auto 12px;
+}
+
+.widget-avatar img,
+.widget-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.widget-name-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+  padding-right: 8px;
+  flex: 1;
+}
+
+.widget-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.widget-name-text {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.widget-subtitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.widget-popup-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-popup-email {
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 16px;
+}
+
+.widget-popup-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.widget-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border-radius: 12px;
+  transition: background 0.2s;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  font-family: inherit;
+  color: #475569;
+}
+
+.widget-menu-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.widget-menu-item.danger {
+  color: #ef4444;
+}
+
+/* ダークモードでのオーバーライド */
+@media (prefers-color-scheme: dark) {
+  .account-widget-popup {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .account-widget-button.collapsed {
+    background: rgba(30, 41, 59, 0.8);
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .account-widget-button.collapsed:hover {
+    background: rgba(51, 65, 85, 0.9);
+  }
+
+  .account-widget-name-text {
+    color: #f8fafc;
+  }
+
+  .widget-popup-name,
+  .widget-popup-email {
+    color: #f8fafc;
+  }
+
+  .widget-menu-item {
+    color: #cbd5e1;
+  }
+}

@@ -1,0 +1,111 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 便利関数群
+    function isAuth() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // ユーザープロファイル (別DB "users" 想定だが、werewolf DBにも配置可能)
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId);
+    }
+    
+    function isDeadOrSpectator(roomId) {
+      let path = /databases/$(database)/documents/artifacts/mansuke-jinro/public/data/rooms/$(roomId)/players/$(request.auth.uid);
+      return exists(path) && (
+        get(path).data.status == 'dead' || 
+        get(path).data.status == 'vanished' || 
+        get(path).data.isSpectator == true
+      );
+    }
+    
+    // 役職判定
+    function getMyRole(roomId) {
+      let path = /databases/$(database)/documents/artifacts/mansuke-jinro/public/data/rooms/$(roomId)/players/$(request.auth.uid)/secret/roleData;
+      return exists(path) ? get(path).data.role : null;
+    }
+
+    function canReadTeamChat(roomId, channel) {
+      let role = getMyRole(roomId);
+      return (channel == 'werewolf_team' && (role == 'werewolf' || role == 'greatwolf' || role == 'wise_wolf')) ||
+             (channel == 'madman' && role == 'madman') ||
+             (channel == 'assassin' && role == 'assassin') ||
+             (channel == role);
+    }
+
+    // ★ システム設定 (APIキーなど)
+    match /system/settings {
+      allow read: if true; // メンテナンスモード等は公開情報
+      allow write: if false;
+    }
+
+    // ★ プレイヤー名検索用のコレクション・グループクエリ許可
+    match /{path=**}/players/{playerId} {
+      allow read: if isAuth();
+    }
+
+    // ★ 試合履歴データ (Match History)
+    match /artifacts/mansuke-jinro/public/data/match_history/{matchId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // メインの部屋データへのパス
+    match /artifacts/mansuke-jinro/public/data/rooms/{roomId} {
+      
+      // 1. 部屋情報 (Room)
+      allow get, list: if true; // 部屋リストはログイン前でも見れるようにする
+      
+      allow create, update, delete: if false;
+
+      // 2. プレイヤー情報 (Players) - 公開情報
+      match /players/{playerId} {
+        allow read: if isAuth();
+
+        // クライアント書き込み全面禁止
+        allow write: if false;
+      }
+
+      // 3. 【最重要】秘密情報 (Secret)
+      match /players/{playerId}/secret/{docId} {
+        allow read: if isOwner(playerId);
+        allow write: if false;
+      }
+
+      // 4. チャット
+      match /chat/{msgId} {
+        allow read: if isAuth();
+        allow write: if false;
+      }
+      
+      match /teamChats/{msgId} {
+        allow read: if isAuth() && canReadTeamChat(roomId, resource.data.channel);
+        allow write: if false;
+      }
+
+      match /graveChat/{msgId} {
+        allow read: if isAuth() && isDeadOrSpectator(roomId);
+        allow write: if false;
+      }
+      
+      match /messages/{messageId} {
+        allow read: if isAuth();
+        allow write: if false;
+      }
+
+      // 5. 投票・夜のアクション
+      match /votes/{voteId} {
+        allow read, write: if false;
+      }
+      match /nightActions/{actionId} {
+        allow read, write: if false;
+      }
+    }
+  }
+}
