@@ -58,7 +58,7 @@ export default function SsoRedirect() {
 
             <div className="login-card" style={{ textAlign: 'center' }}>
                 <h1 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, marginBottom: 'var(--spacing-md)' }}>
-                    認証連携中...
+                    MANSUKEアカウントを認証中
                 </h1>
 
                 {error ? (
@@ -79,7 +79,7 @@ export default function SsoRedirect() {
                 ) : (
                     <>
                         <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--spacing-xl)' }}>
-                            外部アプリへ安全にログイン情報を転送しています。
+                            MANSUKEアカウントを連携しています...
                         </p>
                         <div className="spinner" style={{ margin: '0 auto', width: 32, height: 32 }} />
                     </>

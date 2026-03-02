@@ -150,7 +150,7 @@ export default function RedeemPage() {
                 <>
                     <FaqCard
                         question="PREPAID CARDはどこで購入できますか？"
-                        answer="MANSUKEの職員が直接手渡しで販売しています。お気軽にお声かけください！"
+                        answer="MANSUKEの職員が直接手渡しで販売しています。お気軽にお声かけください！！"
                     />
 
                     <div className="section-card">

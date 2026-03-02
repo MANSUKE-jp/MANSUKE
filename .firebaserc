@@ -17,8 +17,8 @@
         "homepage": [
           "mansuke-homepage"
         ],
-        "prepaid-card": [
-          "mansuke-prepaid"
+        "mansuke-staff": [
+          "mansuke-staff"
         ]
       }
     }

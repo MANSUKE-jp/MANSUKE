@@ -202,7 +202,7 @@ export default function KycBarrier() {
                     border: 1px solid var(--border);
                     border-radius: var(--radius-xl);
                     width: 100%;
-                    max-width: 800px;
+                    max-width: 1000px;
                     padding: 48px;
                     box-shadow: 0 32px 64px rgba(15, 23, 42, 0.12);
                     display: grid;
@@ -331,7 +331,7 @@ export default function KycBarrier() {
 
                 .explanation-card {
                     margin-top: 48px;
-                    max-width: 800px;
+                    max-width: 1000px;
                     width: 100%;
                     padding: 24px;
                     border-radius: var(--radius-lg);
@@ -423,7 +423,10 @@ export default function KycBarrier() {
                     <Shield size={14} /> 本人確認について
                 </div>
                 <p className="explanation-text">
-                    メールアドレスと電話番号の所有を確認するためのものです。あなたの情報を確かめるために、セルフィー（自撮り）や政府発行の身分証明書の提出を求める場合があります。本人確認に使用した情報は、MANSUKEのプライバシーポリシーに従い、厳重扱います。
+                    MANSUKEのコミュニティをより安全なものにする取り組みの一環として、MANSUKEはお客様のメールアドレス・電話番号・セルフィー（自撮り）・政府発行の身分証明書の提出を求めます。<br />
+                    お客様のメールアドレスと電話番号の所有を確認した後、セルフィーの撮影ステップに入ります。通常の場合本人確認ステップはこれにて終了となりますが、すでに同じセルフィーでMANSUKEアカウントに登録されている場合や、ライブネス（微弱な表情の変化など）を確認できなかった場合、政府発行の身分証明書の撮影ステップになる場合があります。<br />
+                    いずれの情報も世界最高のセキュリティ基準を誇る本人確認サービスのDiditによって処理されます。<br />
+                    本人確認に用いた情報はMANSUKEのプライバシーポリシーに沿って適切に扱います。
                 </p>
             </div>
         </div>

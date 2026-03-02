@@ -12,17 +12,19 @@
         "start:hirusupa": "npm run dev -w apps/HIRUSUPA",
         "start:werewolf": "npm run dev -w apps/WEREWOLF",
         "start:mymansuke": "npm run dev -w apps/MyMANSUKE",
-        "start:prepaid": "npm run dev -w apps/PREPAID-CARD",
         "deploy:all": "firebase deploy",
         "deploy:hirusupa": "firebase deploy --only hosting:hirusupa,functions:hirusupa-functions,firestore:hirusupa",
         "deploy:werewolf": "firebase deploy --only hosting:werewolf,functions:werewolf-functions,firestore:werewolf",
         "deploy:mymansuke": "firebase deploy --only hosting:mymansuke,functions:mymansuke-functions,firestore:mymansuke",
-        "deploy:prepaid": "firebase deploy --only hosting:prepaid-card,functions:prepaid-functions",
-        "deploy:homepage": "firebase deploy --only hosting:homepage"
+        "deploy:homepage": "firebase deploy --only hosting:homepage",
+        "generate-icons": "node shared/scripts/generate-icons.js"
     },
     "dependencies": {
         "firebase": "^11.10.0",
         "framer-motion": "^12.34.3",
         "lucide-react": "^0.575.0"
+    },
+    "devDependencies": {
+        "sharp": "^0.34.5"
     }
 }

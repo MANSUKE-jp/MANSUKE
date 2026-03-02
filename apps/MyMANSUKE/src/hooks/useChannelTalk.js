@@ -12,10 +12,11 @@ export default function useChannelTalk(user, userData) {
                 pluginKey: key,
                 memberId: user.uid,
                 profile: {
-                    name: `${userData.lastName || ''} ${userData.firstName || ''}`.trim() || userData.displayName || userData.email || user.email || '未設定',
+                    name: `${userData.lastName || ''} ${userData.firstName || ''}`.trim() || userData.nickname || userData.displayName || userData.email || user.email || '未設定',
                     email: userData.email || user.email || '',
-                    mobileNumber: userData.phoneNumber || '',
-                    accountBalance: (userData.balance !== undefined && userData.balance !== null) ? userData.balance : "不明",
+                    mobileNumber: userData.phone || user.phoneNumber || '',
+                    balance: (userData.balance !== undefined && userData.balance !== null) ? userData.balance : 0,
+                    avatarUrl: userData.avatarUrl || user.photoURL || '',
                     kycStatus: userData.kycStatus || '未完了'
                 }
             });

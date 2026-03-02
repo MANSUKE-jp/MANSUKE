@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { signInWithPopup, linkWithPopup, signInWithCustomToken } from 'firebase/auth';
 import {
     Check, ChevronRight, ChevronLeft, AlertCircle, ChevronDown,
     Eye, EyeOff, User, Mail, Phone, Lock, AtSign, Calendar,
-    Fingerprint, Sparkles, ExternalLink,
+    Fingerprint, Sparkles, ExternalLink, Camera
 } from 'lucide-react';
 import { auth, googleProvider, callFunction } from '../firebase';
 import { validatePassword, validateNickname, isPasswordValid, isNicknameValid, isEmailValid, isPhoneValid } from '../utils/validators';
 import { registerPasskey, isPasskeySupported } from '../utils/passkey';
+import ImageCropperModal from '../components/ImageCropperModal';
+import { uploadProfilePicture } from '../utils/storage';
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 
 // ── Step Progress Bar ──────────────────────────────────────────────────
 function StepBar({ current }) {
@@ -240,6 +242,9 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [password2, setPassword2] = useState('');
     const [nickname, setNickname] = useState('');
+    const [avatarBlob, setAvatarBlob] = useState(null);
+    const [imageToCrop, setImageToCrop] = useState(null);
+    const fileInputRef = useRef(null);
     const [passkeyDone, setPasskeyDone] = useState(false);
     const [googleLinked, setGoogleLinked] = useState(false);
 
@@ -311,7 +316,22 @@ export default function RegisterPage() {
 
     const goBack = () => setStep(s => Math.max(s - 1, 1));
 
-    // ── Step 8: Google link ──
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.addEventListener('load', () => setImageToCrop(reader.result));
+            reader.readAsDataURL(file);
+        }
+        e.target.value = null; // reset
+    };
+
+    const handleCropDone = (blob) => {
+        setAvatarBlob(blob);
+        setImageToCrop(null);
+    };
+
+    // ── Step 9: Google link ──
     const handleGoogleLink = async () => {
         setSubmitting(true);
         clearErrors();
@@ -353,7 +373,7 @@ export default function RegisterPage() {
         }
     };
 
-    // ── Step 9: Passkey ──
+    // ── Step 10: Passkey ──
     const handlePasskeySetup = async () => {
         if (!isPasskeySupported()) {
             setErrors(['このブラウザはパスキーをサポートしていません']);
@@ -367,8 +387,7 @@ export default function RegisterPage() {
             const fn = callFunction('registerPasskeyChallenge');
             const { data: challengeData } = await fn({
                 email,
-                displayName: `${lastName} ${firstName}`,
-                nickname,
+                displayName: email,
             });
             const attestation = await registerPasskey(challengeData);
             const verifyFn = callFunction('verifyPasskeyRegistration');
@@ -383,7 +402,7 @@ export default function RegisterPage() {
         }
     };
 
-    // ── Step 10: Submit all data → Firestore ──
+    // ── Step 11: Submit all data → Firestore ──
     const handleFinalSubmit = async () => {
         setSubmitting(true);
         clearErrors();
@@ -402,7 +421,17 @@ export default function RegisterPage() {
 
             const { customToken } = result.data;
             if (customToken) {
-                await signInWithCustomToken(auth, customToken);
+                const userCred = await signInWithCustomToken(auth, customToken);
+                
+                if (avatarBlob) {
+                    try {
+                        const url = await uploadProfilePicture(userCred.user.uid, avatarBlob);
+                        const fnAvatar = callFunction('mymansukeUpdateAvatarUrl');
+                        await fnAvatar({ avatarUrl: url });
+                    } catch (e) {
+                        console.error("Avatar upload failed during registration:", e);
+                    }
+                }
             }
 
             // Redirect to passkey verification, passing along the redirect URL
@@ -596,8 +625,48 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 8: Google Link ── */}
+                    {/* ── STEP 8: Profile Picture ── */}
                     {step === 8 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)', alignItems: 'center' }}>
+                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4, width: '100%' }}>
+                                プロフィール画像を設定しましょう
+                            </h2>
+                            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', width: '100%' }}>
+                                設定しない場合は、後からマイページで変更できます。
+                            </p>
+                            <div style={{
+                                width: 140, height: 140, borderRadius: '50%', background: 'var(--surface-2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                                border: '2px dashed var(--border)', cursor: 'pointer', position: 'relative'
+                            }} onClick={() => fileInputRef.current?.click()}>
+                                {avatarBlob ? (
+                                    <img src={URL.createObjectURL(avatarBlob)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    <Camera size={36} style={{ color: 'var(--text-3)' }} />
+                                )}
+                            </div>
+                            <input
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.webp,.heic"
+                                style={{ display: 'none' }}
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                            />
+                            <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+                                画像を選択する
+                            </button>
+                            {imageToCrop && (
+                                <ImageCropperModal
+                                    imageSrc={imageToCrop}
+                                    onCropDone={handleCropDone}
+                                    onCancel={() => setImageToCrop(null)}
+                                />
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── STEP 9: Google Link ── */}
+                    {step === 9 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                             <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
                                 Googleアカウントと連携することで、さらに便利にログインできます！
@@ -629,8 +698,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 9: Passkey ── */}
-                    {step === 9 && (
+                    {/* ── STEP 10: Passkey ── */}
+                    {step === 10 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
                                 パスキーの設定を行ってください。
@@ -673,8 +742,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 10: Done ── */}
-                    {step === 10 && (
+                    {/* ── STEP 11: Done ── */}
+                    {step === 11 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', textAlign: 'center' }}>
                             <div style={{ fontSize: 64, marginBottom: 'var(--spacing-md)' }}>✅</div>
                             <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em' }}>
@@ -712,13 +781,13 @@ export default function RegisterPage() {
                         display: 'flex', gap: 'var(--spacing-md)',
                         marginTop: 'var(--spacing-xl)',
                     }}>
-                        {step > 1 && step < 10 && (
+                        {step > 1 && step < 11 && (
                             <button className="btn btn-ghost" style={{ flex: '0 0 auto' }} onClick={goBack}>
                                 <ChevronLeft size={18} />
                             </button>
                         )}
 
-                        {step < 9 && (
+                        {step < 10 && (
                             <button
                                 className="btn btn-primary btn-full"
                                 onClick={goNext}
@@ -728,18 +797,18 @@ export default function RegisterPage() {
                                 {submitting ? (
                                     <><div className="spinner" /> 確認中...</>
                                 ) : (
-                                    <>{step === 8 && !googleLinked ? 'スキップ' : '次へ'} <ChevronRight size={16} /></>
+                                    <>{(step === 9 && !googleLinked) || (step === 8 && !avatarBlob) ? 'スキップ' : '次へ'} <ChevronRight size={16} /></>
                                 )}
                             </button>
                         )}
 
-                        {step === 9 && passkeyDone && (
+                        {step === 10 && passkeyDone && (
                             <button className="btn btn-primary btn-full" onClick={goNext} style={{ flex: 1 }}>
                                 次へ <ChevronRight size={16} />
                             </button>
                         )}
 
-                        {step === 10 && (
+                        {step === 11 && (
                             <button
                                 className="btn btn-primary btn-full"
                                 onClick={handleFinalSubmit}

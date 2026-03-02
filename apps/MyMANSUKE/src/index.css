@@ -152,6 +152,7 @@ a {
 /* ── Sidebar ────────────────────────────────────────────────── */
 .nav-sidebar {
     width: 280px;
+    transition: width var(--transition);
     /* 広げてゆったりと */
     flex-shrink: 0;
     background: var(--sidebar-bg);
@@ -163,6 +164,37 @@ a {
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 10;
+}
+
+.nav-sidebar.collapsed {
+    width: 88px;
+}
+.nav-sidebar.collapsed .sidebar-logo {
+    padding: 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.nav-sidebar.collapsed .sidebar-logo-title,
+.nav-sidebar.collapsed .sidebar-logo-sub,
+.nav-sidebar.collapsed .sidebar-nav-label,
+.nav-sidebar.collapsed .nav-item span {
+    display: none;
+}
+.nav-sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 14px 0;
+    margin: 4px 16px;
+}
+.nav-sidebar.collapsed .sidebar-user {
+    padding: 24px 16px;
+}
+.nav-sidebar.collapsed .account-widget-button {
+    padding: 10px;
+    justify-content: center;
+}
+.nav-sidebar.collapsed .widget-name-col {
+    display: none;
 }
 
 .sidebar-logo {

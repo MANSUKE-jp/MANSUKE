@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // MANSUKE Orders Database Rules
+    // Currently, all client-side reads and writes are denied.
+    // Order creation and status updates are securely managed backend-only.
+    // Once the management application is built, these rules can be updated
+    // to allow admins to read and search the orders.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

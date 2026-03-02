@@ -1,36 +1,9 @@
 rules_version = '2';
-
 service cloud.firestore {
-  // prepaid-card データベース用の設定
   match /databases/{database}/documents {
-
-    // Helper: isStaff check
-    // Uses cross-database fetch to check the users database
-    function isStaff() {
-      return request.auth != null && 
-             get(/databases/users/documents/users/$(request.auth.uid)).data.isStaff == true;
-    }
-
-    // 'cards' コレクション
-    match /cards/{documentId} {
-      
-      // 1. 読み取り (Read)
-      // スタッフのみ読み取り可能
-      allow list: if isStaff() && request.query.limit <= 1;
-      allow get: if isStaff();
-
-      // 2. 作成 (Create) - 管理画面用
-      allow create: if false;
-
-      // 3. 更新 (Update) - 原則禁止 🚫
-      allow update: if false;
-
-      // 4. 削除 (Delete)
-      allow delete: if false;
-    }
-
-    // 安全のため、定義していないその他の場所へのアクセスは全てブロックします
     match /{document=**} {
+      // プリペイドカードデータベースは全てCloud Functions (Admin SDK)経由で操作されます。
+      // クライアントからの直接の読み書きは全て禁止します。
       allow read, write: if false;
     }
   }

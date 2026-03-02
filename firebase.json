@@ -55,8 +55,8 @@
             ]
         },
         {
-            "target": "prepaid-card",
-            "public": "apps/PREPAID-CARD/dist",
+            "target": "mansuke-staff",
+            "public": "apps/STAFF/dist",
             "ignore": [
                 "firebase.json",
                 "**/.*",
@@ -65,7 +65,7 @@
             "rewrites": [
                 {
                     "source": "/api/verifyMansukeToken",
-                    "function": "werewolfVerifyMansukeToken",
+                    "function": "staffVerifyMansukeToken",
                     "region": "asia-northeast2"
                 },
                 {
@@ -85,42 +85,8 @@
     ],
     "functions": [
         {
-            "source": "apps/HIRUSUPA/functions",
-            "codebase": "hirusupa-functions",
-            "disallowLegacyRuntimeConfig": true,
-            "ignore": [
-                "node_modules",
-                ".git",
-                "firebase-debug.log",
-                "firebase-debug.*.log",
-                "*.local"
-            ]
-        },
-        {
-            "source": "apps/WEREWOLF/functions",
-            "codebase": "werewolf-functions",
-            "ignore": [
-                "node_modules",
-                ".git",
-                "firebase-debug.log",
-                "firebase-debug.*.log",
-                "*.local"
-            ]
-        },
-        {
-            "source": "apps/MyMANSUKE/functions",
-            "codebase": "mymansuke-functions",
-            "ignore": [
-                "node_modules",
-                ".git",
-                "firebase-debug.log",
-                "firebase-debug.*.log",
-                "*.local"
-            ]
-        },
-        {
-            "source": "apps/PREPAID-CARD/functions",
-            "codebase": "prepaid-functions",
+            "source": "shared/functions",
+            "codebase": "default",
             "ignore": [
                 "node_modules",
                 ".git",
@@ -148,6 +114,10 @@
         {
             "database": "prepaid-card",
             "rules": "firestore/prepaid-card.rules"
+        },
+        {
+            "database": "orders",
+            "rules": "firestore/orders.rules"
         }
     ]
 }

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Clock, TrendingUp, TrendingDown, AlertCircle, Wallet, PlusCircle } from 'lucide-react';
+import { CreditCard, Clock, ArrowUp, ArrowDown, AlertCircle, Wallet, PlusCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 
 // ── Transaction Row ──────────────────────────────────────────────
-function TransactionRow({ tx }) {
+function TransactionRow({ tx, computedBalanceAfter }) {
     const date = tx.createdAt?.toDate?.() ?? new Date();
     const isCredit = tx.amount > 0;
 
@@ -25,9 +25,9 @@ function TransactionRow({ tx }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
                 {isCredit ? (
-                    <TrendingUp size={18} style={{ color: 'var(--accent-emerald)' }} />
+                    <ArrowUp size={18} style={{ color: 'var(--accent-emerald)' }} />
                 ) : (
-                    <TrendingDown size={18} style={{ color: 'var(--accent-rose)' }} />
+                    <ArrowDown size={18} style={{ color: 'var(--accent-rose)' }} />
                 )}
             </div>
             <div style={{ flex: 1 }}>
@@ -39,15 +39,31 @@ function TransactionRow({ tx }) {
                     {' '}
                     {date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                 </div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 2, fontFamily: "'Inter', sans-serif" }}>
+                    {tx.transactionId || tx.orderId || ''}
+                </div>
             </div>
+            
             <div style={{
+                flex: 1, textAlign: 'center',
                 fontSize: '1rem', fontWeight: 800,
                 color: isCredit ? 'var(--accent-emerald)' : 'var(--accent-rose)',
                 fontFamily: "'Inter', 'Noto Sans JP', sans-serif",
                 fontVariantNumeric: 'tabular-nums',
                 letterSpacing: '0.02em',
             }}>
-                {isCredit ? '+' : ''}¥{Math.abs(tx.amount).toLocaleString()}
+                {isCredit ? '+' : ''}¥{Math.abs(tx.amount || 0).toLocaleString()}
+            </div>
+            
+            <div style={{
+                flex: 1, textAlign: 'right',
+                fontSize: '1rem', fontWeight: 700,
+                color: 'var(--text-main)',
+                fontFamily: "'Inter', 'Noto Sans JP', sans-serif",
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.02em',
+            }}>
+                {computedBalanceAfter !== undefined ? `¥${computedBalanceAfter.toLocaleString()}` : '—'}
             </div>
         </div>
     );
@@ -58,7 +74,7 @@ import { useNavigate } from 'react-router-dom';
 export default function PaymentPage() {
     const { user, userData } = useAuth();
     const navigate = useNavigate();
-    const [transactions, setTransactions] = useState([]);
+    const [rawTransactions, setRawTransactions] = useState([]);
     const [txLoading, setTxLoading] = useState(true);
     const [txError, setTxError] = useState('');
 
@@ -69,7 +85,7 @@ export default function PaymentPage() {
         const ref = collection(db, 'users', user.uid, 'transactions');
         const q = query(ref, orderBy('createdAt', 'desc'), limit(50));
         const unsub = onSnapshot(q, (snap) => {
-            setTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setRawTransactions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
             setTxLoading(false);
         }, () => {
             setTxError('履歴の取得に失敗しました');
@@ -77,6 +93,30 @@ export default function PaymentPage() {
         });
         return unsub;
     }, [user]);
+
+    // Calculate computed balance for past transactions
+    const transactionsWithBalance = React.useMemo(() => {
+        if (!rawTransactions.length) return [];
+        let runningBalance = balance;
+        // The list is descending (newest first). So we iterate from 0 to n.
+        // runningBalance represents "balance AFTER this transaction".
+        return rawTransactions.map((tx) => {
+            let computedBalanceAfter;
+            if (tx.balanceAfter !== undefined) {
+                computedBalanceAfter = tx.balanceAfter;
+                // update running balance to the "before" state of THIS tx,
+                // which is exactly `tx.balanceAfter - tx.amount`
+                runningBalance = tx.balanceAfter - (tx.amount || 0);
+            } else {
+                computedBalanceAfter = runningBalance;
+                runningBalance = computedBalanceAfter - (tx.amount || 0);
+            }
+            return {
+                ...tx,
+                computedBalanceAfter
+            };
+        });
+    }, [rawTransactions, balance]);
 
     return (
         <div className="page-enter">
@@ -94,7 +134,7 @@ export default function PaymentPage() {
             }}>
                 {/* Balance card */}
                 <div className="section-card">
-                    <div className="section-header">
+                    <div className="section-header" style={{ justifyContent: 'center' }}>
                         <Wallet size={18} style={{ color: 'var(--accent-indigo)' }} />
                         <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 700 }}>アカウント残高</div>
                     </div>
@@ -119,25 +159,41 @@ export default function PaymentPage() {
                         <PlusCircle size={18} style={{ color: 'var(--accent-emerald)' }} />
                         <div style={{ fontSize: 'var(--font-size-base)', fontWeight: 700 }}>残高を追加する</div>
                     </div>
-                    <div className="section-body" style={{
-                        display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)',
-                        padding: 'var(--spacing-xl)',
-                        justifyContent: 'center', height: '100%',
-                    }}>
-                        <button
-                            className="btn btn-primary"
-                            style={{ width: '100%', justifyContent: 'center' }}
+                    <div className="section-body" style={{ padding: '0 var(--spacing-xl)' }}>
+                        <div 
                             onClick={() => navigate('/redeem')}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-md)',
+                                padding: 'var(--spacing-md) var(--spacing-md)', borderBottom: '1px solid var(--border)',
+                                cursor: 'pointer', color: 'var(--text)',
+                                borderRadius: 'var(--radius-sm)',
+                                transition: 'background-color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
-                            MANSUKE PREPAID CARDで追加
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            style={{ width: '100%', justifyContent: 'center' }}
+                            <Wallet size={18} style={{ color: 'var(--accent-emerald)' }} />
+                            <span style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
+                                MANSUKE PREPAID CARDで追加
+                            </span>
+                        </div>
+                        <div 
                             onClick={() => alert('クレジットカード追加機能は準備中です。')}
+                            style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-md)',
+                                padding: 'var(--spacing-md) var(--spacing-md)', borderBottom: '1px solid var(--border)',
+                                cursor: 'pointer', color: 'var(--text)',
+                                borderRadius: 'var(--radius-sm)',
+                                transition: 'background-color 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
-                            クレジットカードで追加
-                        </button>
+                            <CreditCard size={18} style={{ color: 'var(--accent-indigo)' }} />
+                            <span style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
+                                クレジットカードで追加
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -161,7 +217,7 @@ export default function PaymentPage() {
                         }}>
                             <AlertCircle size={15} /> {txError}
                         </div>
-                    ) : transactions.length === 0 ? (
+                    ) : transactionsWithBalance.length === 0 ? (
                         <div style={{
                             textAlign: 'center', padding: 'var(--spacing-xl)',
                             color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)',
@@ -174,8 +230,23 @@ export default function PaymentPage() {
                         </div>
                     ) : (
                         <div>
-                            {transactions.map(tx => (
-                                <TransactionRow key={tx.id} tx={tx} />
+                            {/* Column Headers */}
+                            <div style={{
+                                display: 'flex',
+                                fontSize: 'var(--font-size-xs)',
+                                fontWeight: 700,
+                                color: 'var(--text-muted)',
+                                paddingBottom: 'var(--spacing-sm)',
+                                borderBottom: '1px solid var(--border)',
+                                marginBottom: 'var(--spacing-sm)'
+                            }}>
+                                <div style={{ flex: 1, paddingLeft: 'calc(36px + var(--spacing-md))' }}>項目 / 取引ID</div>
+                                <div style={{ flex: 1, textAlign: 'center' }}>決済額</div>
+                                <div style={{ flex: 1, textAlign: 'right' }}>決済後の残高</div>
+                            </div>
+
+                            {transactionsWithBalance.map(tx => (
+                                <TransactionRow key={tx.id} tx={tx} computedBalanceAfter={tx.computedBalanceAfter} />
                             ))}
                         </div>
                     )}

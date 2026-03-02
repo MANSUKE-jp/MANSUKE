@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home, User, Shield, Gift, CreditCard, MoreHorizontal,
-    LogOut, CheckCircle2,
+    LogOut, CheckCircle2, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -18,7 +18,7 @@ const NAV_ITEMS = [
     { to: '/others', icon: MoreHorizontal, label: 'その他' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isCollapsed, onToggleCollapse }) {
     const { user, userData } = useAuth();
     const navigate = useNavigate();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -33,11 +33,23 @@ export default function Sidebar() {
     };
 
     return (
-        <nav className="nav-sidebar">
+        <nav className={`nav-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Logo */}
-            <div className="sidebar-logo">
-                <span className="sidebar-logo-title">MANSUKE</span>
-                <span className="sidebar-logo-sub">Powered By Cerinal</span>
+            <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                    {!isCollapsed && <span className="sidebar-logo-title">MANSUKE</span>}
+                    {isCollapsed && <span className="sidebar-logo-title" style={{ fontSize: 22, textAlign: 'center' }}>M</span>}
+                    {!isCollapsed && <span className="sidebar-logo-sub">Powered By Cerinal</span>}
+                </div>
+                <button
+                    onClick={onToggleCollapse}
+                    style={{
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: 'var(--text-3)', padding: 4, marginTop: 4, marginLeft: isCollapsed ? -8 : 0
+                    }}
+                >
+                    {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                </button>
             </div>
 
             {/* Navigation */}
@@ -68,7 +80,7 @@ export default function Sidebar() {
                             className="account-widget-popup"
                         >
                             <div className="widget-avatar-large">
-                                {initial}
+                                {userData?.avatarUrl ? <img src={userData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
                             </div>
                             <div className="widget-popup-name">{displayName}</div>
                             <div className="widget-popup-email">{user?.email}</div>
@@ -92,7 +104,7 @@ export default function Sidebar() {
                     className={`account-widget-button ${isExpanded ? 'expanded' : 'collapsed'}`}
                 >
                     <div className="widget-avatar">
-                        {initial}
+                        {userData?.avatarUrl ? <img src={userData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
                     </div>
                     <div className="widget-name-col">
                         <div className="widget-name-row">
