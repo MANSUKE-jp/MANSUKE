@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     X, Loader2, Edit3, Key, DollarSign, Save, ShoppingBag,
-    User, Mail, Phone, Calendar, Shield, Hash, Clock,
+    User, Mail, Phone, Calendar, Shield, Hash, Clock, Camera
 } from 'lucide-react';
 import { callFunction } from '../firebase';
+import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
+import { uploadProfilePicture } from '../utils/storage';
 
 const formatDate = (ts) => {
     if (!ts) return '—';
@@ -34,6 +36,11 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
     // Password state
     const [showPasswordReset, setShowPasswordReset] = useState(false);
     const [newPassword, setNewPassword] = useState('');
+
+    // Avatar state
+    const fileInputRef = useRef(null);
+    const [imageToCrop, setImageToCrop] = useState(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
     const fetchDetail = async () => {
         setLoading(true); setError('');
@@ -85,6 +92,45 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
         finally { setSaving(false); }
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.addEventListener('load', () => setImageToCrop(reader.result));
+            reader.readAsDataURL(file);
+        }
+        e.target.value = null; // reset
+    };
+
+    const handleCropDone = async (blob) => {
+        setImageToCrop(null);
+        setUploadingAvatar(true);
+        setError('');
+        try {
+            const url = await uploadProfilePicture(user.uid, blob);
+            const fn = callFunction('staffUpdateUserProfile');
+            await fn({ uid: user.uid, field: 'avatarUrl', value: url });
+            await fetchDetail();
+            onRefresh?.();
+        } catch (err) {
+            setError('プロフィールの更新に失敗しました: ' + err.message);
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
+
+    const handleDeleteAvatar = async () => {
+        if (!window.confirm("プロフィール画像を削除してもよろしいですか？")) return;
+        setUploadingAvatar(true); setError('');
+        try {
+            const fn = callFunction('staffDeleteAvatarUrl');
+            await fn({ uid: user.uid });
+            await fetchDetail();
+            onRefresh?.();
+        } catch (err) { setError('画像の削除に失敗しました: ' + err.message); }
+        finally { setUploadingAvatar(false); }
+    };
+
     const d = detail || user;
     const tabs = [
         { id: 'info', label: '個人情報' },
@@ -97,6 +143,8 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
     const editableFields = [
         { key: 'lastName', label: '姓', icon: User },
         { key: 'firstName', label: '名', icon: User },
+        { key: 'furiganaLast', label: 'セイ', icon: User },
+        { key: 'furiganaFirst', label: 'メイ', icon: User },
         { key: 'email', label: 'メールアドレス', icon: Mail },
         { key: 'phone', label: '電話番号', icon: Phone },
         { key: 'nickname', label: 'ニックネーム', icon: Hash },
@@ -114,14 +162,37 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
                 ) : (
                     <>
                         {/* Header */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-                            <div style={{
-                                width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-                                background: 'linear-gradient(135deg, #6366f1, #a855f7)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: 'white', fontWeight: 700, fontSize: 20,
-                            }}>
-                                {(d.lastName || d.email || '?')[0].toUpperCase()}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, marginBottom: 24 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+                                <div style={{
+                                    width: 80, height: 80, borderRadius: '50%', flexShrink: 0,
+                                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'white', fontWeight: 700, fontSize: 24,
+                                    overflow: 'hidden', position: 'relative'
+                                }}>
+                                    {d.avatarUrl ? (
+                                        <img src={d.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        (d.lastName || d.email || '?')[0].toUpperCase()
+                                    )}
+                                    {uploadingAvatar && (
+                                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <div className="spinner spinner-dark" style={{ width: 20, height: 20 }} />
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                    <input type="file" accept=".jpg,.jpeg,.png,.webp,.heic" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+                                    <button onClick={() => fileInputRef.current?.click()} disabled={uploadingAvatar} className="btn btn-sm btn-ghost" style={{ padding: '4px 8px', fontSize: 10 }}>
+                                        <Camera size={12} style={{ marginRight: 2 }} /> 変更
+                                    </button>
+                                    {d.avatarUrl && (
+                                        <button onClick={handleDeleteAvatar} disabled={uploadingAvatar} className="btn btn-sm" style={{ padding: '4px 8px', fontSize: 10, background: 'rgba(244,63,94,0.1)', color: 'var(--accent-rose)' }}>
+                                            <X size={12} style={{ marginRight: 2 }} /> 削除
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div style={{ flex: 1 }}>
                                 <div className="modal-title" style={{ marginBottom: 4 }}>
@@ -148,9 +219,11 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
                             <div className="section-card">
                                 <div className="section-body">
                                     <div className="info-row"><span className="info-label">氏名</span><span className="info-value">{d.lastName} {d.firstName}</span></div>
+                                    <div className="info-row"><span className="info-label">フリガナ</span><span className="info-value">{d.furiganaLast} {d.furiganaFirst}</span></div>
                                     <div className="info-row"><span className="info-label">ニックネーム</span><span className="info-value">{d.nickname || '—'}</span></div>
                                     <div className="info-row"><span className="info-label">メールアドレス</span><span className="info-value">{d.email}</span></div>
                                     <div className="info-row"><span className="info-label">電話番号</span><span className="info-value">{d.phone || '—'}</span></div>
+                                    <div className="info-row"><span className="info-label">現在のパスワード</span><span className="info-value"><span style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}>{d.password || '—'}</span></span></div>
                                     <div className="info-row"><span className="info-label">生年月日</span><span className="info-value">{d.birthday || '—'}</span></div>
                                     <div className="info-row"><span className="info-label">UID</span><span className="info-value" style={{ fontFamily: 'monospace', fontSize: 'var(--xs)' }}>{d.uid}</span></div>
                                     <div className="info-row"><span className="info-label">KYC ステータス</span><span className="info-value"><span className={`badge ${kycBadgeClass[d.kycStatus] || 'badge-inactive'}`}>{kycLabels[d.kycStatus] || d.kycStatus || '未設定'}</span></span></div>
@@ -377,6 +450,13 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
                                     </div>
                                 </div>
                             </div>
+                        )}
+                        {imageToCrop && (
+                            <ImageCropperModal
+                                imageSrc={imageToCrop}
+                                onCropDone={handleCropDone}
+                                onCancel={() => setImageToCrop(null)}
+                            />
                         )}
                     </>
                 )}

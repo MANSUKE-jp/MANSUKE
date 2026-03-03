@@ -29,7 +29,7 @@ export const storage = getStorage(app);
 // Firestore with "users" database ID (not "default")
 export const db = getFirestore(app, 'users');
 
-export const functions = getFunctions(app, 'us-central1');
+export const functions = getFunctions(app, 'asia-northeast2');
 
 // Uncomment to use Firebase Emulator locally:
 // connectFunctionsEmulator(functions, 'localhost', 5001);

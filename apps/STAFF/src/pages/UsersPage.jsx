@@ -60,8 +60,13 @@ const UsersPage = () => {
                                 background: 'linear-gradient(135deg, #6366f1, #a855f7)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 color: 'white', fontWeight: 700, fontSize: 16,
+                                overflow: 'hidden'
                             }}>
-                                {(user.lastName || user.firstName || user.email || '?')[0].toUpperCase()}
+                                {user.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    (user.lastName || user.firstName || user.email || '?')[0].toUpperCase()
+                                )}
                             </div>
                             <div className="result-item-body">
                                 <div className="result-item-title">

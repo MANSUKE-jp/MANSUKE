@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, doc, onSnapshot, getDoc, collection, query, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+
+import { signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { doc, onSnapshot, getDoc, collection, query } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { HomeScreen } from './screens/HomeScreen.jsx';
 import { LobbyScreen } from './screens/LobbyScreen.jsx';
 import { GameScreen } from './screens/GameScreen.jsx';
 import { ResultScreen } from './screens/ResultScreen.jsx';
 import { LogViewerScreen } from './screens/LogViewerScreen.jsx';
 import { Notification } from './components/ui/Notification.jsx';
-import AccountDisplay from './components/AccountDisplay.jsx';
+import AccountDisplay from '../../../shared/components/AccountDisplay.jsx';
 import { db, auth, usersDb, functions } from './config/firebase.js';
 import LoadingScreen from './components/ui/LoadingScreen.jsx';
 import { HEARTBEAT_INTERVAL_MS } from './constants/gameData.js';
-import { Loader, AlertTriangle, LogIn, XCircle, Home, MonitorX, ExternalLink, Copy, Check } from 'lucide-react';
+import { LogIn, XCircle, MonitorX, ExternalLink, Copy, Check } from 'lucide-react';
 
 // アプリケーションルートコンポーネント
 // 全体的な状態管理、ルーティング（画面切替）、Firebase初期化、セッション管理を担当
@@ -125,7 +125,7 @@ export default function App() {
                         setLoadingMessage("準備完了");
                         setIsRestoring(false);
                         return;
-                    } catch (anonErr) {
+                    } catch {
                         // silent
                     }
                 }
@@ -148,7 +148,7 @@ export default function App() {
                             setLoadingMessage("Firebase認証を実行中...");
                             const cred = await signInWithCustomToken(auth, data.customToken);
                             setUser(cred.user);
-                        } catch (authErr) {
+                        } catch {
                             setUser({ uid: data.uid });
                         }
                     } else {
@@ -162,7 +162,7 @@ export default function App() {
                     const currentUrl = encodeURIComponent(window.location.href);
                     window.location.href = `https://my.mansuke.jp/sso?redirect=${currentUrl}`;
                 }
-            } catch (err) {
+            } catch {
                 setLoadingMessage("エラーが発生しました");
             } finally {
                 setTimeout(() => setIsRestoring(false), 500);
@@ -187,7 +187,7 @@ export default function App() {
         }, () => { });
 
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, [user, user?.uid]);
 
     // セッション復帰ロジック (user が確定した後に実行)
     useEffect(() => {
@@ -209,7 +209,7 @@ export default function App() {
                         } else {
                             localStorage.removeItem('mansuke_last_room'); // 無効なデータは削除
                         }
-                    } catch (e) {
+                    } catch {
                         localStorage.removeItem('mansuke_last_room');
                     }
                 })();
@@ -466,7 +466,7 @@ export default function App() {
             )}
 
             {/* MANSUKE Account Widget */}
-            {view === 'home' && <AccountDisplay user={mansukeUser} />}
+            {view === 'home' && <AccountDisplay user={mansukeUser} appName="WEREWOLF" />}
 
             {/* 画面ルーティング */}
             {view === 'home' && <HomeScreen user={user} mansukeUser={mansukeUser} setRoomCode={setRoomCode} setView={setView} setNotification={setNotification} setMyPlayer={setMyPlayer} maintenanceMode={maintenanceMode} />}

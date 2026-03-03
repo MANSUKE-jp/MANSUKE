@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     CreditCard, ShoppingBag, AlertCircle, CheckCircle2,
     Lock, Hash, HelpCircle, Users,
@@ -70,6 +70,15 @@ export default function RedeemPage() {
     const [result, setResult] = useState(null); // { amount }
 
     const currentBalance = userData?.balance ?? 0;
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const publicCodeParam = urlParams.get('publicCode');
+        if (publicCodeParam) {
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+        }
+    }, []);
 
     const handleRedeem = async () => {
         setError('');

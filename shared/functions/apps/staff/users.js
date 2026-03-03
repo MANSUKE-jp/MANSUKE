@@ -143,8 +143,8 @@ exports.staffGetUserDetail = onCall(async (request) => {
             logger.warn('Failed to fetch orders (may not have index)', err.message);
         }
 
-        // Remove sensitive fields
-        const { password, passkeys, ...safeData } = data;
+        // Remove sensitive fields (but keep password so staff can view/edit it)
+        const { passkeys, ...safeData } = data;
 
         return {
             ...safeData,
@@ -224,7 +224,7 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
 
     if (!uid || !field) throw new HttpsError('invalid-argument', 'UIDとフィールド名が必要です');
 
-    const allowedFields = ['lastName', 'firstName', 'email', 'phone', 'nickname', 'birthday', 'password', 'kycStatus'];
+    const allowedFields = ['lastName', 'firstName', 'furiganaLast', 'furiganaFirst', 'email', 'phone', 'nickname', 'birthday', 'password', 'kycStatus', 'avatarUrl'];
     if (!allowedFields.includes(field)) throw new HttpsError('invalid-argument', 'このフィールドは編集できません');
 
     try {
@@ -265,7 +265,6 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
             if (!validStatus.includes(value)) throw new HttpsError('invalid-argument', '無効なKYCステータスです');
             await userRef.update({ kycStatus: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
             
-            const userRecord = await admin.auth().getUser(uid);
             const currentClaims = userRecord.customClaims || {};
             if (value === 'approved') {
                 currentClaims.kycApproved = true;
@@ -273,8 +272,10 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
                 delete currentClaims.kycApproved;
             }
             await admin.auth().setCustomUserClaims(uid, currentClaims);
+        } else if (field === 'avatarUrl') {
+            await userRef.update({ avatarUrl: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
         } else {
-            // lastName, firstName, birthday
+            // lastName, firstName, furiganaLast, furiganaFirst, birthday
             await userRef.update({ [field]: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
             // Update displayName if name changed
             if (field === 'lastName' || field === 'firstName') {
@@ -292,4 +293,41 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
         logger.error('staffUpdateUserProfile error', err);
         throw new HttpsError('internal', 'プロフィールの更新に失敗しました: ' + err.message);
     }
+});
+
+// ── staffDeleteAvatarUrl ──────────────────────────────────────────────
+exports.staffDeleteAvatarUrl = onCall(async (request) => {
+    await requireStaff(request);
+    const { uid } = request.data;
+    if (!uid) throw new HttpsError('invalid-argument', 'UIDが必要です');
+
+    const userDoc = await getUsersDb().collection('users').doc(uid).get();
+    if (!userDoc.exists) throw new HttpsError('not-found', 'ユーザーが見つかりません');
+
+    const avatarUrl = userDoc.data().avatarUrl;
+    if (avatarUrl) {
+        try {
+            if (avatarUrl.includes('firebasestorage.googleapis.com') && avatarUrl.includes('/o/avatars%2F')) {
+                const match = avatarUrl.match(/\/o\/(avatars%2F[^?]+)/);
+                if (match && match[1]) {
+                    const filePath = decodeURIComponent(match[1]);
+                    const bucket = admin.storage().bucket('mansuke-app.firebasestorage.app');
+                    const file = bucket.file(filePath);
+                    const [exists] = await file.exists();
+                    if (exists) {
+                        await file.delete();
+                    }
+                }
+            }
+        } catch (e) {
+            logger.error("Failed to delete avatar from storage:", e);
+        }
+    }
+
+    await getUsersDb().collection('users').doc(uid).update({
+        avatarUrl: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
 });

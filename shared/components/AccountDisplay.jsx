@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, User, Settings, CheckCircle2 } from 'lucide-react';
 
-function AccountDisplay({ user }) {
+function AccountDisplay({ user, appName = 'default' }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // MANSUKEアカウントの情報から表示名を決定
@@ -12,7 +12,7 @@ function AccountDisplay({ user }) {
         : user?.displayName || user?.email || "ゲスト");
 
     // アイコンURLの取得
-    const avatarUrl = user?.photoURL || null;
+    const avatarUrl = user?.avatarUrl || user?.photoURL || null;
 
     const handleLogout = () => {
         // ログアウト処理:
@@ -21,6 +21,18 @@ function AccountDisplay({ user }) {
         document.cookie = "__session=; domain=.mansuke.jp; path=/; max-age=0; secure; samesite=lax";
         window.location.href = `https://my.mansuke.jp/logout`;
     };
+
+    const handleProfileClick = () => {
+        if (appName === 'WEREWOLF') {
+            // WHEREWOLFの場合はニックネーム変更（プロフィールのタブなど）へ
+            window.location.href = 'https://my.mansuke.jp/profile';
+        } else {
+            // それ以外は個人情報ページへ
+            window.location.href = 'https://my.mansuke.jp/profile';
+        }
+    };
+
+    const profileButtonText = appName === 'WEREWOLF' ? 'ニックネームを変更' : '個人情報';
 
     if (!user) return null;
 
@@ -37,7 +49,7 @@ function AccountDisplay({ user }) {
                     >
                         <div className="widget-avatar-large">
                             {avatarUrl ? (
-                                <img src={avatarUrl} alt={fullName} />
+                                <img src={avatarUrl} alt={fullName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                             ) : (
                                 <User size={40} />
                             )}
@@ -47,10 +59,10 @@ function AccountDisplay({ user }) {
 
                         <div className="widget-popup-menu">
                             <button
-                                onClick={() => window.location.href = 'https://my.mansuke.jp'}
+                                onClick={handleProfileClick}
                                 className="widget-menu-item"
                             >
-                                <Settings size={16} /> マイページ
+                                <Settings size={16} /> {profileButtonText}
                             </button>
                             <button
                                 onClick={handleLogout}
@@ -71,7 +83,7 @@ function AccountDisplay({ user }) {
             >
                 <div className="widget-avatar">
                     {avatarUrl ? (
-                        <img src={avatarUrl} alt={fullName} />
+                        <img src={avatarUrl} alt={fullName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                     ) : (
                         <User size={24} />
                     )}

@@ -60,7 +60,7 @@ exports.checkPhoneUnique = onCall(async (request) => {
 // ── createAccount ─────────────────────────────────────────────────────
 
 exports.createAccount = onCall(async (request) => {
-    const { lastName, firstName, birthday, email, phone, password, nickname, linkGoogle } = request.data;
+    const { lastName, firstName, furiganaLast, furiganaFirst, birthday, email, phone, password, nickname, linkGoogle } = request.data;
 
     if (!validatePassword(password)) {
         throw new HttpsError(
@@ -107,14 +107,22 @@ exports.createAccount = onCall(async (request) => {
         console.warn('Failed to retrieve temp passkey', e);
     }
 
+    // Convert E.164 phone (+8190...) to local format (090...) for Didit consistency
+    let localPhone = normalizedPhone || '';
+    if (localPhone.startsWith('+81')) {
+        localPhone = '0' + localPhone.slice(3);
+    }
+
     await getDb().collection('users').doc(userRecord.uid).set({
         uid: userRecord.uid,
         lastName,
         firstName,
+        furiganaLast,
+        furiganaFirst,
         displayName: `${lastName} ${firstName}`.trim(),
         birthday,
         email,
-        phone: normalizedPhone,
+        phone: localPhone,
         nickname: nickname.trim(),
         balance: 0,
         kycStatus: 'pending',

@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Home, User, Shield, Gift, CreditCard, MoreHorizontal,
-    LogOut, CheckCircle2, PanelLeftClose, PanelLeftOpen
+    LogOut, CheckCircle2, PanelLeftClose, PanelLeftOpen, Wifi
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
     { to: '/security', icon: Shield, label: 'セキュリティ' },
     { to: '/redeem', icon: Gift, label: 'コード引換' },
     { to: '/payment', icon: CreditCard, label: 'お支払いと残高' },
+    { to: '/man-fi', icon: Wifi, label: 'man-fi' },
     { to: '/others', icon: MoreHorizontal, label: 'その他' },
 ];
 
@@ -35,7 +36,13 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }) {
     return (
         <nav className={`nav-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
             {/* Logo */}
-            <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div className={`sidebar-logo ${isCollapsed ? 'collapsed' : ''}`} style={{ 
+                display: 'flex', 
+                flexDirection: isCollapsed ? 'column' : 'row', 
+                alignItems: isCollapsed ? 'center' : 'flex-start', 
+                justifyContent: isCollapsed ? 'center' : 'space-between',
+                gap: isCollapsed ? 12 : 0
+            }}>
                 <div>
                     {!isCollapsed && <span className="sidebar-logo-title">MANSUKE</span>}
                     {isCollapsed && <span className="sidebar-logo-title" style={{ fontSize: 22, textAlign: 'center' }}>M</span>}
@@ -45,7 +52,8 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }) {
                     onClick={onToggleCollapse}
                     style={{
                         background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: 'var(--text-3)', padding: 4, marginTop: 4, marginLeft: isCollapsed ? -8 : 0
+                        color: 'var(--text-3)', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginTop: isCollapsed ? 0 : 4
                     }}
                 >
                     {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
@@ -78,6 +86,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse }) {
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
                             className="account-widget-popup"
+                            style={{ width: 232 }}
                         >
                             <div className="widget-avatar-large">
                                 {userData?.avatarUrl ? <img src={userData.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}

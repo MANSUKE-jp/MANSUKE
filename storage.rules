@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Explicitly deny everything by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Rules for avatars
+    match /avatars/{filename} {
+      // Anyone can view the avatars
+      allow read: if true;
+      
+      // Users can only upload and update their own avatars. 
+      // The filename must start with their UID (e.g. "uid_1234.jpeg")
+      // File size must be less than 5MB
+      // Content type must be an image
+      // File size must be less than 5MB
+      // Content type must be an image
+      allow write: if request.auth != null 
+                    && filename.split('_')[0] == request.auth.uid
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+    }
+  }
+}

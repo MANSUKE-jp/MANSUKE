@@ -147,3 +147,45 @@ exports.updateAvatarUrl = onCall(async (request) => {
 
     return { success: true };
 });
+
+// ── deleteAvatarUrl
+
+exports.deleteAvatarUrl = onCall(async (request) => {
+    requireAuth(request);
+    const uid = request.auth.uid;
+
+    const userDoc = await getDb().collection('users').doc(uid).get();
+    if (!userDoc.exists) throw new HttpsError('not-found', 'ユーザーが見つかりません');
+
+    const avatarUrl = userDoc.data().avatarUrl;
+    if (avatarUrl) {
+        // Firebase StorageのURLの特徴（.../o/avatars%2F...）が含まれているかチェックし、可能ならファイルも削除する
+        try {
+            if (avatarUrl.includes('firebasestorage.googleapis.com') && avatarUrl.includes('/o/avatars%2F')) {
+                // Extracts essentially everything after "/o/" and before "?alt=media"
+                // e.g. https://firebasestorage.googleapis.com/.../o/avatars%2Fuid_timestamp.jpeg?alt=...
+                const match = avatarUrl.match(/\/o\/(avatars%2F[^?]+)/);
+                if (match && match[1]) {
+                    const filePath = decodeURIComponent(match[1]);
+                    // Initialize Storage if necessary (already done via admin.initializeApp())
+                    const bucket = admin.storage().bucket('mansuke-app.firebasestorage.app');
+                    const file = bucket.file(filePath);
+                    const [exists] = await file.exists();
+                    if (exists) {
+                        await file.delete();
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Failed to delete avatar from storage:", e);
+            // 続行してFirestoreドキュメントからはURLを消す
+        }
+    }
+
+    await getDb().collection('users').doc(uid).update({
+        avatarUrl: admin.firestore.FieldValue.delete(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+});

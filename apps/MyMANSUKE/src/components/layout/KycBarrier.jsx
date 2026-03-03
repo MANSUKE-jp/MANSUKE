@@ -171,10 +171,10 @@ export default function KycBarrier() {
                 </div>
                 <h2 className="barrier-title">本人確認に失敗しました</h2>
                 <div className="reason-box">
-                    {REASON_MESSAGES[kycReason] || '規定の基準を満たさなかったため、承認されませんでした。画像が鮮明であることを確認して再度お試しください。'}
+                    {REASON_MESSAGES[kycReason] || '規定の基準を満たさなかったため、承認されませんでした。'}
                 </div>
                 <p className="barrier-desc">
-                    以下から登録情報を確認し、必要があれば修正してから再度認証を行ってください。
+                    登録情報を確認し、必要があれば修正してから再度認証を行ってください。
                 </p>
             </div>
         );

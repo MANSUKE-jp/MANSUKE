@@ -162,7 +162,7 @@ const PosPage = () => {
 
     const showError = (msg) => { setErrorModal({ show: true, message: msg }); errorModalRef.current = true; };
     const closeError = () => { setErrorModal({ show: false, message: '' }); errorModalRef.current = false; setTimeout(() => { isProcessing.current = false; }, 500); };
-    const isCustomerView = ['amount', 'pin', 'signature', 'complete'].includes(status);
+    const isCustomerView = ['amount', 'confirm_amount', 'pin', 'signature', 'complete'].includes(status);
     const isCameraActive = status === 'scanning';
 
     const getInvertedSignature = () => {
@@ -182,10 +182,27 @@ const PosPage = () => {
         if (!code || isProcessing.current || errorModalRef.current) return;
         isProcessing.current = true; setIsChecking(true);
         let keep = false;
-        if (code.startsWith('http')) { showError('このQRコードはギフトカードの情報を含んでいません。'); setIsChecking(false); return; }
+        let searchCode = code;
+        if (code.startsWith('http')) {
+            try {
+                const url = new URL(code);
+                const publicCodeParam = url.searchParams.get('publicCode');
+                if (publicCodeParam) {
+                    searchCode = publicCodeParam;
+                } else {
+                    showError('このQRコードはギフトカードの情報を含んでいません。');
+                    setIsChecking(false);
+                    return;
+                }
+            } catch (e) {
+                showError('無効なQRコード形式です。');
+                setIsChecking(false);
+                return;
+            }
+        }
         try {
             const fn = callFunction('staffVerifyPrepaidCardCode');
-            const result = await fn({ code });
+            const result = await fn({ code: searchCode });
             setCardData(result.data);
             setStatus('amount');
             keep = true;
@@ -225,9 +242,10 @@ const PosPage = () => {
     };
     const submitAmount = () => {
         const v = parseInt(amount, 10);
-        if (v >= 300 && v <= 10000) setStatus('pin');
+        if (v >= 300 && v <= 10000) setStatus('confirm_amount');
         else { showError('金額は ¥300 〜 ¥10,000 の範囲で設定してください。'); setAmount(''); }
     };
+    const confirmAmount = () => setStatus('pin');
     const submitPin = () => { if (pin.length === 4) setStatus('signature'); };
     const submitSignature = () => {
         if (sigPadCustomer.current && !sigPadCustomer.current.isEmpty()) { setCustomerSignatureImg(getInvertedSignature()); setStatus('payment'); }
@@ -381,6 +399,36 @@ const PosPage = () => {
                     />
                 )}
 
+                {/* ─── 2.5 AMOUNT CONFIRMATION (Customer-facing, dark, rotated) ───── */}
+                {status === 'confirm_amount' && (
+                    <motion.div key="confirm_amount" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: '#000', position: 'relative', padding: 16 }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(180deg)' }}>
+                            <div style={{ textAlign: 'center', maxWidth: 640 }}>
+                                <h2 style={{ fontSize: 40, fontWeight: 700, color: 'white', marginBottom: 32 }}>チャージ金額の確認</h2>
+                                <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 48px', marginBottom: 32 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, fontSize: 24, color: '#d1d5db' }}>
+                                        <span>チャージ金額</span>
+                                        <span style={{ fontFamily: "'Oswald', sans-serif" }}>¥{parseInt(amount).toLocaleString()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 24, borderBottom: '1px solid rgba(255,255,255,0.2)', marginBottom: 24, fontSize: 24, color: '#d1d5db' }}>
+                                        <span>発行手数料</span>
+                                        <span style={{ fontFamily: "'Oswald', sans-serif" }}>¥100</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 36, fontWeight: 700, color: '#d4af37' }}>
+                                        <span>お支払い合計</span>
+                                        <span style={{ fontFamily: "'Oswald', sans-serif" }}>¥{(parseInt(amount) + 100).toLocaleString()}</span>
+                                    </div>
+                                    <p style={{ marginTop: 24, fontSize: 16, color: '#9ca3af', lineHeight: 1.6 }}>お支払い金額には、チャージ金額に加えて<br/>カード発行手数料の100円が含まれます。</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: 16 }}>
+                                    <button onClick={() => setStatus('amount')} type="button" style={{ flex: 1, padding: 24, borderRadius: 16, border: '2px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'white', fontSize: 20, fontWeight: 700, cursor: 'pointer' }}>修正する</button>
+                                    <button onClick={confirmAmount} type="button" style={{ flex: 2, padding: 24, borderRadius: 16, border: 'none', background: '#d4af37', color: '#000', fontSize: 20, fontWeight: 700, cursor: 'pointer' }}>同意して次へ</button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* ─── 3. PIN (Customer-facing, dark, rotated) ──────── */}
                 {status === 'pin' && (
                     <CustomerSplitView key="pin" title="暗証番号を設定" subtitle="4桁の暗証番号を入力してください" stepIndicator={2}
@@ -439,9 +487,12 @@ const PosPage = () => {
                         {/* Customer-facing (rotated) */}
                         <div style={{ flex: 1, background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', transform: 'rotate(180deg)', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: 32 }}>
                             <div style={{ textAlign: 'center', width: '100%' }}>
-                                <h2 style={{ fontSize: 36, fontFamily: "'Oswald', sans-serif", fontWeight: 700, color: 'white', marginBottom: 16 }}>
-                                    ¥{parseInt(amount).toLocaleString()} <span style={{ fontSize: 20, fontWeight: 400, color: '#9ca3af' }}>をお支払いください</span>
+                                <h2 style={{ fontSize: 40, fontFamily: "'Oswald', sans-serif", fontWeight: 700, color: 'white', marginBottom: 12 }}>
+                                    ¥{(parseInt(amount) + 100).toLocaleString()} <span style={{ fontSize: 20, fontWeight: 400, color: '#9ca3af' }}>をお支払いください</span>
                                 </h2>
+                                <div style={{ fontSize: 16, color: '#d1d5db', marginBottom: 24, fontFamily: "'Inter', sans-serif" }}>
+                                    (チャージ金額: ¥{parseInt(amount).toLocaleString()} + 発行手数料: ¥100)
+                                </div>
                                 <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 24, maxWidth: 600, margin: '0 auto' }}>
                                     <p style={{ fontSize: 14, color: '#d1d5db', lineHeight: 1.8 }}>お客様によるお支払い確認後、職員がアクティベート処理を行います。<br />しばらくお待ちください。</p>
                                     <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center' }}><Loader2 size={32} color="#d4af37" style={{ animation: 'spin 1s linear infinite' }} /></div>
@@ -459,7 +510,8 @@ const PosPage = () => {
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <span style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', marginRight: 8, fontWeight: 600 }}>お支払い金額</span>
-                                    <span style={{ fontSize: 28, fontFamily: 'var(--font-d)', fontWeight: 800, color: 'var(--green)' }}>¥{parseInt(amount).toLocaleString()}</span>
+                                    <span style={{ fontSize: 28, fontFamily: 'var(--font-d)', fontWeight: 800, color: 'var(--green)' }}>¥{(parseInt(amount) + 100).toLocaleString()}</span>
+                                    <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', marginTop: 4 }}>(チャージ: ¥{parseInt(amount).toLocaleString()} + 手数料: ¥100)</div>
                                 </div>
                             </div>
                             <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, overflow: 'auto', paddingBottom: 8 }}>
@@ -468,8 +520,8 @@ const PosPage = () => {
                                     <div>
                                         <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--surface)', border: '2px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, fontSize: 14, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--font-d)' }}>1</div>
                                         <h4 style={{ fontWeight: 700, color: 'var(--ink)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--sm)' }}><Banknote size={18} /> 現金受取</h4>
-                                        <p style={{ fontSize: 28, fontFamily: 'var(--font-d)', fontWeight: 800, color: 'var(--green)', marginBottom: 8 }}>¥{parseInt(amount).toLocaleString()}</p>
-                                        <p style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', lineHeight: 1.6 }}>現金を受け取り、金額を確認してください。</p>
+                                        <p style={{ fontSize: 28, fontFamily: 'var(--font-d)', fontWeight: 800, color: 'var(--green)', marginBottom: 4 }}>¥{(parseInt(amount) + 100).toLocaleString()}</p>
+                                        <p style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', lineHeight: 1.6 }}>現金を受け取り、金額を確認してください。<br/>(チャージ+手数料100円)</p>
                                     </div>
                                 </div>
                                 {/* Step 2: Employee signature */}

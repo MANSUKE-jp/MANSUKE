@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fillout/react": "^3.0.0",
     "@mansuke/shared": "*",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.17.14",

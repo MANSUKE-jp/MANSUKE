@@ -45,7 +45,7 @@ export default function LoginPage() {
                 // Firebase AuthからGoogleユーザーを削除してからサインアウト
                 try {
                     const { getFunctions, httpsCallable } = await import('firebase/functions');
-                    const fns = getFunctions();
+                    const fns = getFunctions(getApp(), 'asia-northeast2');
                     await httpsCallable(fns, 'deleteUnlinkedGoogleUser')();
                 } catch (deleteErr) {
                     // silent

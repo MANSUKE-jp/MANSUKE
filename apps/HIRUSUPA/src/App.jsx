@@ -12,7 +12,7 @@ import FormScreen from './screens/FormScreen';
 import ProcessingScreen from './screens/ProcessingScreen';
 import FinishScreen from './screens/FinishScreen';
 import SearchScreen from './screens/SearchScreen';
-import AccountDisplay from './components/AccountDisplay';
+import AccountDisplay from '../../../shared/components/AccountDisplay';
 import './App.css';
 
 function App() {
@@ -213,7 +213,7 @@ function App() {
       </main>
 
       {/* アカウント表示 (ログイン時のみ) */}
-      <AccountDisplay user={mansukeUser} />
+      <AccountDisplay user={mansukeUser} appName="HIRUSUPA" />
     </div>
   );
 }

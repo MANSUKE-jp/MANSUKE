@@ -26,6 +26,12 @@ service cloud.firestore {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if false;
       }
+
+      // man-fi subcollection — user can read their own info
+      match /man-fi/{docId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
     }
 
     // ── Challenge documents (WebAuthn) ──────────────────────────────

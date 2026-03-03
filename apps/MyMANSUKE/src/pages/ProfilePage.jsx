@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Lock, Users, Shield, Check, AlertCircle, Pencil, X, Camera, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { callFunction } from '../firebase';
-import ImageCropperModal from '../components/ImageCropperModal';
+import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
 
 function InfoRow({ label, value }) {
@@ -111,6 +111,29 @@ function AvatarRow({ avatarUrl }) {
                     >
                         <Camera size={14} /> 変更
                     </button>
+                    {avatarUrl && (
+                        <button
+                            onClick={async () => {
+                                if (!window.confirm("プロフィール画像を削除してもよろしいですか？")) return;
+                                setUploading(true); setError('');
+                                try {
+                                    const fn = callFunction('mymansukeDeleteAvatarUrl');
+                                    await fn();
+                                } catch (err) { setError('画像の削除に失敗しました: ' + err.message); }
+                                finally { setUploading(false); }
+                            }}
+                            disabled={uploading}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.2)',
+                                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                                color: 'var(--accent-rose)', fontSize: 'var(--font-size-xs)',
+                                padding: '6px 12px', transition: 'all var(--transition-fast)',
+                            }}
+                        >
+                            <X size={14} /> 削除
+                        </button>
+                    )}
                 </div>
                 {error && <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--accent-rose)' }}>{error}</div>}
             </div>

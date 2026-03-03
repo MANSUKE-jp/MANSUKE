@@ -9,7 +9,7 @@ import {
 import { auth, googleProvider, callFunction } from '../firebase';
 import { validatePassword, validateNickname, isPasswordValid, isNicknameValid, isEmailValid, isPhoneValid } from '../utils/validators';
 import { registerPasskey, isPasskeySupported } from '../utils/passkey';
-import ImageCropperModal from '../components/ImageCropperModal';
+import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
 
 const TOTAL_STEPS = 11;
@@ -236,6 +236,8 @@ export default function RegisterPage() {
     const [agreedPrivacy, setAgreedPrivacy] = useState(false);
     const [lastName, setLastName] = useState('');
     const [firstName, setFirstName] = useState('');
+    const [furiganaLast, setFuriganaLast] = useState('');
+    const [furiganaFirst, setFuriganaFirst] = useState('');
     const [birthday, setBirthday] = useState({ year: '', month: '', day: '' });
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -261,6 +263,10 @@ export default function RegisterPage() {
                 }
                 return true;
             case 2:
+                if (!furiganaLast.trim() || !furiganaFirst.trim()) {
+                    setErrors(['フリガナ（セイ・メイ）を入力してください']);
+                    return false;
+                }
                 if (!lastName.trim() || !firstName.trim()) {
                     setErrors(['姓と名を入力してください']);
                     return false;
@@ -411,6 +417,8 @@ export default function RegisterPage() {
             const result = await fn({
                 lastName,
                 firstName,
+                furiganaLast,
+                furiganaFirst,
                 birthday: `${birthday.year}/${String(birthday.month).padStart(2, '0')}/${String(birthday.day).padStart(2, '0')}`,
                 email,
                 phone,
@@ -443,27 +451,42 @@ export default function RegisterPage() {
         }
     };
 
-    return (
-        <div className="auth-page">
-            <div className="bg-orb bg-orb-1" style={{ top: '-10%', right: '-5%' }} />
-            <div className="bg-orb bg-orb-2" style={{ bottom: '-10%', left: '-5%' }} />
+            const stepTitles = {
+                1: 'はじめまして！',
+                2: 'お名前を教えてください！:D',
+                3: '生年月日を教えていただけますか？',
+                4: 'メールアドレスをご入力ください。',
+                5: '電話番号のご入力もお願いします！',
+                6: 'ご希望のパスワードを入力してください。',
+                7: 'ニックネームを設定してください。',
+                8: 'プロフィール画像を設定しましょう',
+                9: 'Googleアカウントと連携することで、さらに便利にログインできます！',
+                10: 'パスキーの設定を行ってください。',
+                11: 'すべての設定が完了しました！'
+            };
 
-            <div style={{ position: 'fixed', top: 40, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 50 }}>
-                <span className="login-logo">MANSUKE</span>
-                <span className="login-logo-sub" style={{ marginBottom: 0 }}>アカウント作成</span>
-            </div>
+            return (
+                <div className="auth-page">
+                    <div className="bg-orb bg-orb-1" style={{ top: '-10%', right: '-5%' }} />
+                    <div className="bg-orb bg-orb-2" style={{ bottom: '-10%', left: '-5%' }} />
 
-            <div className="register-card" style={{ marginTop: 80 }}>
+                    <div style={{ position: 'fixed', top: 40, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 50 }}>
+                        <span className="login-logo">MANSUKE</span>
+                        <span className="login-logo-sub" style={{ marginBottom: 0 }}>POWERED BY CERINAL</span>
+                    </div>
 
-                <div className="register-form-container page-enter" key={step}>
-                    <StepBar current={step} />
+                    <div className="register-card" style={{ marginTop: 80 }}>
+                        
+                        <StepBar current={step} />
+                        <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 'var(--spacing-xl)' }}>
+                            {stepTitles[step]}
+                        </h2>
+
+                        <div className="register-form-container page-enter" key={step}>
 
                     {/* ── STEP 1: Terms ── */}
                     {step === 1 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                はじめまして！
-                            </h2>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>
                                 MANSUKEの規約とポリシーをお読みください。
                             </p>
@@ -501,9 +524,18 @@ export default function RegisterPage() {
                     {/* ── STEP 2: Name ── */}
                     {step === 2 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                お名前を教えてください！:D
-                            </h2>
+                            <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
+                                <div className="input-group" style={{ flex: 1 }}>
+                                    <label className="input-label" htmlFor="furi-last">セイ (カタカナ)</label>
+                                    <input id="furi-last" className="input-field" type="text" value={furiganaLast}
+                                        onChange={e => setFuriganaLast(e.target.value)} placeholder="ヤマダ" />
+                                </div>
+                                <div className="input-group" style={{ flex: 1 }}>
+                                    <label className="input-label" htmlFor="furi-first">メイ (カタカナ)</label>
+                                    <input id="furi-first" className="input-field" type="text" value={furiganaFirst}
+                                        onChange={e => setFuriganaFirst(e.target.value)} placeholder="タロウ" />
+                                </div>
+                            </div>
                             <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                                 <div className="input-group" style={{ flex: 1 }}>
                                     <label className="input-label" htmlFor="last-name">姓</label>
@@ -522,9 +554,6 @@ export default function RegisterPage() {
                     {/* ── STEP 3: Birthday ── */}
                     {step === 3 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                生年月日を教えていただけますか？
-                            </h2>
                             <DatePicker value={birthday} onChange={setBirthday} />
                         </div>
                     )}
@@ -532,9 +561,6 @@ export default function RegisterPage() {
                     {/* ── STEP 4: Email ── */}
                     {step === 4 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                メールアドレスをご入力ください。
-                            </h2>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="email-reg">
                                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={13} /> メールアドレス</span>
@@ -549,15 +575,12 @@ export default function RegisterPage() {
                     {/* ── STEP 5: Phone ── */}
                     {step === 5 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                電話番号のご入力もお願いします！
-                            </h2>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="phone-reg">
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={13} /> 電話番号</span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Phone size={13} /> 電話番号（ハイフンなし）</span>
                                 </label>
                                 <input id="phone-reg" className="input-field" type="tel" value={phone}
-                                    onChange={e => setPhone(e.target.value)} placeholder="090-1234-5678"
+                                    onChange={e => setPhone(e.target.value)} placeholder="09012345678"
                                     autoComplete="tel" />
                             </div>
                         </div>
@@ -566,9 +589,6 @@ export default function RegisterPage() {
                     {/* ── STEP 6: Password ── */}
                     {step === 6 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                ご希望のパスワードを入力してください。
-                            </h2>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="pw1">パスワード</label>
                                 <PasswordInput id="pw1" value={password} onChange={setPassword} />
@@ -600,9 +620,6 @@ export default function RegisterPage() {
                     {/* ── STEP 7: Nickname ── */}
                     {step === 7 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                ニックネームを設定してください。
-                            </h2>
                             <div style={{
                                 fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)',
                                 padding: 'var(--spacing-sm) var(--spacing-md)',
@@ -618,7 +635,7 @@ export default function RegisterPage() {
                                 </label>
                                 <input id="nickname-reg" className="input-field" type="text" value={nickname}
                                     onChange={e => setNickname(e.target.value.slice(0, 10))}
-                                    placeholder="mansuke_user"
+                                    placeholder="まんすけ発射"
                                     maxLength={10} />
                                 <div className="input-hint">{nickname.length} / 10</div>
                             </div>
@@ -628,9 +645,6 @@ export default function RegisterPage() {
                     {/* ── STEP 8: Profile Picture ── */}
                     {step === 8 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4, width: '100%' }}>
-                                プロフィール画像を設定しましょう
-                            </h2>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', width: '100%' }}>
                                 設定しない場合は、後からマイページで変更できます。
                             </p>
@@ -668,9 +682,6 @@ export default function RegisterPage() {
                     {/* ── STEP 9: Google Link ── */}
                     {step === 9 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                Googleアカウントと連携することで、さらに便利にログインできます！
-                            </h2>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                                 ご希望の場合は、以下のボタンを押してください。
                             </p>
@@ -701,9 +712,6 @@ export default function RegisterPage() {
                     {/* ── STEP 10: Passkey ── */}
                     {step === 10 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: 4 }}>
-                                パスキーの設定を行ってください。
-                            </h2>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                                 アカウントのセキュリティを強化するため、ご登録時にパスキーのご登録をお願いしております。
                             </p>
@@ -722,7 +730,7 @@ export default function RegisterPage() {
                                             パスキーの設定が完了しました
                                         </div>
                                         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)', marginTop: 2 }}>
-                                            次回からはデバイスの生体認証でログインできます
+                                            2段階認証の手段として登録されています。
                                         </div>
                                     </div>
                                 </div>
@@ -746,9 +754,6 @@ export default function RegisterPage() {
                     {step === 11 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', textAlign: 'center' }}>
                             <div style={{ fontSize: 64, marginBottom: 'var(--spacing-md)' }}>✅</div>
-                            <h2 style={{ fontSize: 'var(--font-size-xl)', fontWeight: 800, letterSpacing: '-0.03em' }}>
-                                すべての設定が完了しました！
-                            </h2>
                             <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-secondary)' }}>
                                 次に、メールアドレス・電話番号とセルフィーの確認を行います。
                             </p>
@@ -761,6 +766,7 @@ export default function RegisterPage() {
                             }}>
                                 {[
                                     { label: 'お名前', value: `${lastName} ${firstName}` },
+                                    { label: 'フリガナ', value: `${furiganaLast} ${furiganaFirst}` },
                                     { label: 'メールアドレス', value: email },
                                     { label: '電話番号', value: phone },
                                     { label: 'ニックネーム', value: nickname },

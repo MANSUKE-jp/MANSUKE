@@ -13,6 +13,7 @@ import SecurityPage from './pages/SecurityPage';
 import RedeemPage from './pages/RedeemPage';
 import PaymentPage from './pages/PaymentPage';
 import OthersPage from './pages/OthersPage';
+import ManFiPage from './pages/ManFiPage';
 import LogoutPage from './pages/LogoutPage';
 import SsoRedirect from './pages/SsoRedirect';
 import useChannelTalk from './hooks/useChannelTalk';
@@ -58,7 +59,7 @@ function GuestOnly({ children }) {
                     window.location.href = redirectParam;
                     return null;
                 }
-            } catch (e) {
+            } catch (_e) {
                 // invalid URL, ignore
             }
         }
@@ -108,6 +109,7 @@ function AppRoutes() {
                 <Route path="security" element={<SecurityPage />} />
                 <Route path="redeem" element={<RedeemPage />} />
                 <Route path="payment" element={<PaymentPage />} />
+                <Route path="man-fi" element={<ManFiPage />} />
                 <Route path="others" element={<OthersPage />} />
             </Route>
 

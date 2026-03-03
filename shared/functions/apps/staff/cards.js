@@ -292,7 +292,7 @@ exports.importCards = onCall(async (request) => {
                     skippedCount++;
                     continue;
                 }
-                const cardRef = prepaidDb.collection('cards').doc();
+                const cardRef = getPrepaidDb().collection('cards').doc();
                 batch.set(cardRef, {
                     publicCode: item.publicCode,
                     pinCode: item.pinCode,

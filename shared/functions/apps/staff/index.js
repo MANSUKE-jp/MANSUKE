@@ -3,7 +3,8 @@
  */
 
 const { staffSearchCards, staffGetCardDetail, staffUpdateCardBalance, staffToggleCardStatus, staffVerifyPrepaidCardCode, activatePrepaidCard, importCards } = require('./cards');
-const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile } = require('./users');
+// Users
+const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl } = require('./users');
 const { verifyMansukeToken } = require('./tokenVerification');
 
 module.exports = {
@@ -21,6 +22,7 @@ module.exports = {
     staffGetUserDetail,
     staffAdjustBalance,
     staffUpdateUserProfile,
+    staffDeleteAvatarUrl,
 
     // SSO
     staffVerifyMansukeToken: verifyMansukeToken,
