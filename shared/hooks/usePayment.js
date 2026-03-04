@@ -17,6 +17,7 @@ export const usePayment = (functionsInstance) => {
      * @param {number} config.amount
      * @param {string} config.description
      * @param {string} config.serviceName
+     * @param {boolean} config.isPreApproval // Skip backend call on confirmation
      * @param {Function} config.onSuccess  // Called with receiptId on success
      * @param {Function} config.onError
      */
@@ -35,6 +36,16 @@ export const usePayment = (functionsInstance) => {
     const handleConfirm = async () => {
         setIsProcessing(true);
         try {
+            // == NEW: Pre-Approval Flow (No immediate backend charge) ==
+            if (paymentConfig.isPreApproval) {
+                setIsOpen(false);
+                if (paymentConfig.onSuccess) {
+                    await paymentConfig.onSuccess("pre-approved");
+                }
+                return;
+            }
+            // ==========================================================
+
             const processPaymentFn = httpsCallable(functionsInstance, 'processPayment');
 
             const result = await processPaymentFn({

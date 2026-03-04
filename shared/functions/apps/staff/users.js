@@ -273,7 +273,11 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
             }
             await admin.auth().setCustomUserClaims(uid, currentClaims);
         } else if (field === 'avatarUrl') {
-            await userRef.update({ avatarUrl: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+            await userRef.update({ 
+                avatarUrl: value, 
+                avatarHistory: admin.firestore.FieldValue.arrayUnion(value),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp() 
+            });
         } else {
             // lastName, firstName, furiganaLast, furiganaFirst, birthday
             await userRef.update({ [field]: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });

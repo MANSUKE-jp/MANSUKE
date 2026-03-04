@@ -61,7 +61,6 @@ exports.registerPasskeyChallenge = onCall(async (request) => {
         authenticatorSelection: {
             residentKey: 'required',
             userVerification: 'required',
-            authenticatorAttachment: 'platform',
         },
     });
 

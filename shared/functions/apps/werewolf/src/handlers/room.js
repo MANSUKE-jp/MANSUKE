@@ -264,8 +264,16 @@ exports.getAllPlayerRolesHandler = async (request) => {
     const isDev = me && me.isDev === true; // 開発者
     const isSpectator = me && me.isSpectator === true; // 観戦者
 
-    // 終了後は全員OK、プレイ中は特定の人のみOK
-    const isAllowed = isFinished || isHost || isDead || isDev || isSpectator;
+    // 終了後は全員OK。未終了時はホストであっても参加中の生存者は閲覧不可
+    let isAllowed = false;
+    if (isFinished || isDead || isDev || isSpectator) {
+        isAllowed = true;
+    } else if (isHost) {
+        // 未終了時のホストの特例：ロビー待機中、またはごく稀にプレイヤードキュメントが存在しない場合のみ許可
+        if (status === 'waiting' || !me) {
+            isAllowed = true;
+        }
+    }
 
     if (!isAllowed) {
         throw new HttpsError('permission-denied', `権限がありません (status:${status})`);

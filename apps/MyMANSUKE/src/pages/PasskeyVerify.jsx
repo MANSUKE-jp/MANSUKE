@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { KeyRound, ShieldCheck, AlertCircle, ArrowRight } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { auth, callFunction } from '../firebase';
-import { authenticatePasskey, isPasskeySupported } from '../utils/passkey';
+import { authenticatePasskey, isPasskeySupported, getPasskeyErrorMessage } from '../utils/passkey';
 
 export default function PasskeyVerify() {
     const { user, setPasskeyVerified } = useAuth();
@@ -23,8 +23,15 @@ export default function PasskeyVerify() {
 
     const [status, setStatus] = useState('idle'); // idle | loading | error
     const [error, setError] = useState('');
+    const [supported, setSupported] = useState(null); // null = checking
 
-    const supported = isPasskeySupported();
+    useEffect(() => {
+        let cancelled = false;
+        isPasskeySupported().then(result => {
+            if (!cancelled) setSupported(result);
+        });
+        return () => { cancelled = true; };
+    }, []);
 
     const handleVerify = async () => {
         setStatus('loading');
@@ -63,10 +70,12 @@ export default function PasskeyVerify() {
 
             navigate(redirectTo, { replace: true });
         } catch (err) {
-            if (err.message?.includes('cancel') || err.name === 'NotAllowedError') {
+            const msg = getPasskeyErrorMessage(err);
+            if (msg === null) {
+                // User cancelled
                 setStatus('idle');
             } else {
-                setError(err.message || 'パスキー認証に失敗しました');
+                setError(msg);
                 setStatus('error');
             }
         }
@@ -113,14 +122,14 @@ export default function PasskeyVerify() {
                         ログインの最終確認として、登録済みのパスキーを使用して本人確認を行います。デバイスの生体認証を使用してください。
                     </p>
 
-                    {!supported && (
+                    {supported === false && (
                         <div style={{
                             background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)',
                             borderRadius: 'var(--radius-md)', padding: 'var(--spacing-md)',
                             marginBottom: 'var(--spacing-lg)', fontSize: 'var(--font-size-sm)',
                             color: 'var(--accent-rose)', textAlign: 'left',
                         }}>
-                            このブラウザはパスキーをサポートしていません。最新のブラウザをご使用ください。
+                            このブラウザまたはデバイスはパスキーに対応していません。最新のブラウザをご使用いただくか、別のデバイスでお試しください。
                         </div>
                     )}
 
@@ -140,7 +149,7 @@ export default function PasskeyVerify() {
                     <button
                         className="btn btn-primary btn-full"
                         onClick={handleVerify}
-                        disabled={status === 'loading' || !supported}
+                        disabled={status === 'loading' || supported !== true}
                     >
                         {status === 'loading' ? (
                             <><div className="spinner" /> 確認中...</>

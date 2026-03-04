@@ -204,31 +204,30 @@ const ProcessingScreen = ({ formData, onStop, user }) => {
             setTotalCost(radioNameService.getAmount()); // 最新の発生料金を反映
           } catch (err) {
             if (err.message === "PAYMENT_REQUIRED") {
-              addLog('info', '残高支払の待機', '追加のラジオネームを生成するため、決済が必要です。', `process-${processId}`);
-              setStatus('payment_required');
-              payment.requestPayment({
-                amount: 5,
-                serviceName: 'HIRUSUPA',
-                description: 'Geminiによるラジオネーム追加生成（100件）',
-                onSuccess: async (receiptId) => {
-                  try {
-                    addLog('info', 'Gemini API', 'ラジオネームを追加生成中...', `process-${processId}`);
-                    // Fetch the *next* name again, but pass the receipt to refill specifically
-                    currentRadioName = await radioNameService.getNextName(sessionIdRef.current, receiptId);
-                    setTotalCost(radioNameService.getAmount());
-                    addLog('success', 'ラジオネーム生成完了', '追加の生成が完了しました。連投を再開します。', `process-${processId}`);
-                    setStatus('running');
-                  } catch (refillErr) {
-                    addLog('error', '生成エラー', 'ラジオネームの追加生成に失敗しました。', `process-${processId}`);
-                    setStatus('error');
-                  }
-                },
-                onError: (payErr) => {
-                  addLog('error', '決済キャンセル', '決済が完了しなかったため、連投を停止します。', `process-${processId}`);
-                  handleStop();
+              addLog('info', '自動補充', '連投在庫が切れたため、バックグラウンド決済を実行して補充します...', `process-${processId}`);
+              
+              try {
+                const processPaymentFn = httpsCallable(functions, 'processPayment');
+                const result = await processPaymentFn({
+                  amount: 5,
+                  serviceId: 'hirusupa_gemini',
+                  description: 'Geminiによるラジオネーム追加生成（最大100件）'
+                });
+
+                if (result.data && result.data.success) {
+                  const receiptId = result.data.receiptId;
+                  addLog('info', 'Gemini API', '自動決済完了。ラジオネームを追加生成中...', `process-${processId}`);
+                  currentRadioName = await radioNameService.getNextName(sessionIdRef.current, receiptId);
+                  setTotalCost(radioNameService.getAmount());
+                  addLog('success', '自動補充完了', '在庫の補充が完了しました。連投を続行します。', `process-${processId}`);
+                } else {
+                  throw new Error("自動決済に失敗しました");
                 }
-              });
-              return; // 一旦ループを抜ける（runningに戻ったら再開）
+              } catch (payErr) {
+                addLog('error', '自動決済エラー', '残高不足などの理由で自動決済に失敗したため、連投を停止します。', `process-${processId}`);
+                handleStop();
+                return;
+              }
             } else {
               throw err;
             }

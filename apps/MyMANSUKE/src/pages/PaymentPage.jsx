@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Clock, ArrowUp, ArrowDown, AlertCircle, Wallet, PlusCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { CreditCard, Clock, ArrowUp, ArrowDown, AlertCircle, Wallet, PlusCircle, Info, Heart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../firebase';
+import { db, functions } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { usePayment, PaymentModal } from '@mansuke/shared';
 
 // ── Transaction Row ──────────────────────────────────────────────
 function TransactionRow({ tx, computedBalanceAfter }) {
@@ -77,6 +79,11 @@ export default function PaymentPage() {
     const [rawTransactions, setRawTransactions] = useState([]);
     const [txLoading, setTxLoading] = useState(true);
     const [txError, setTxError] = useState('');
+    
+    // Donation state
+    const [showDonationModal, setShowDonationModal] = useState(false);
+    const [donationAmount, setDonationAmount] = useState('');
+    const payment = usePayment(functions);
 
     const balance = userData?.balance ?? 0;
 
@@ -118,11 +125,63 @@ export default function PaymentPage() {
         });
     }, [rawTransactions, balance]);
 
+    const handleDonationSubmit = (e) => {
+        e.preventDefault();
+        const amount = parseInt(donationAmount, 10);
+        if (isNaN(amount) || amount <= 0) {
+            alert('正しい金額を入力してください。');
+            return;
+        }
+        setShowDonationModal(false);
+        payment.requestPayment({
+            amount,
+            description: 'MANSUKEへの寄付',
+            serviceName: 'donation',
+            onSuccess: () => {
+                alert('寄付が完了しました。ありがとうございます！');
+                setDonationAmount('');
+            }
+        });
+    };
+
     return (
         <div className="page-enter">
-            <div className="page-header">
+            <div className="page-header" style={{ position: 'relative' }}>
                 <h1 className="page-title">お支払いと請求</h1>
                 <p className="page-subtitle">残高と取引履歴の確認</p>
+                <div style={{ position: 'absolute', top: 0, right: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div 
+                        title="MANSUKEの運営と開発者のモチベーション維持のために、寄付をお願いします！"
+                        style={{ 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            background: 'var(--bg-secondary)', color: 'var(--text-muted)',
+                            cursor: 'help', transition: 'background 0.2s',
+                        }}
+                        onClick={() => alert("MANSUKEの運営と開発者のモチベーション維持のために、寄付をお願いします！")}
+                    >
+                        <Info size={16} />
+                    </div>
+                    <button 
+                        onClick={() => setShowDonationModal(true)} 
+                        style={{ 
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            background: 'linear-gradient(135deg, rgba(244,63,94,0.1), rgba(225,29,72,0.1))',
+                            border: '1px solid rgba(244,63,94,0.2)',
+                            borderRadius: '99px',
+                            padding: '8px 16px',
+                            fontSize: '0.85rem',
+                            fontWeight: '700',
+                            color: 'var(--accent-rose)',
+                            cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244,63,94,0.15), rgba(225,29,72,0.15))'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(244,63,94,0.1), rgba(225,29,72,0.1))'}
+                    >
+                        <Heart size={16} fill="currentColor" style={{ opacity: 0.8 }} />
+                        MANSUKEに寄付する
+                    </button>
+                </div>
             </div>
 
             {/* Balance + Add Funds — 2 column grid */}
@@ -252,6 +311,68 @@ export default function PaymentPage() {
                     )}
                 </div>
             </div>
+
+            {/* Donation Amount Input Modal */}
+            {showDonationModal && createPortal(
+                <div className="modal-backdrop" style={{ background: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}>
+                    <div className="modal-panel" style={{ padding: '32px', maxWidth: '400px' }}>
+                        <div className="section-header" style={{ marginBottom: 24, padding: 0, border: 'none' }}>
+                            <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 800 }}>MANSUKEへの寄付</div>
+                        </div>
+                        <div className="section-body" style={{ padding: 0 }}>
+                            <form onSubmit={handleDonationSubmit}>
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                                        MANSUKEに何円寄付しますか？
+                                    </label>
+                                    <input
+                                        type="number"
+                                        className="input-field"
+                                        value={donationAmount}
+                                        onChange={(e) => setDonationAmount(e.target.value)}
+                                        placeholder="金額を入力"
+                                        required
+                                        min="1"
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: 24 }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        style={{ padding: '10px 20px', borderRadius: '99px' }}
+                                        onClick={() => setShowDonationModal(false)}
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button 
+                                        type="submit" 
+                                        className="btn btn-primary" 
+                                        style={{ padding: '10px 24px', borderRadius: '99px' }}
+                                    >
+                                        次へ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Payment Framework Modal */}
+            {createPortal(
+                <PaymentModal 
+                    isOpen={payment.isOpen}
+                    onClose={payment.handleClose}
+                    onConfirm={payment.handleConfirm}
+                    amount={payment.paymentConfig.amount}
+                    description={payment.paymentConfig.description}
+                    serviceName={payment.paymentConfig.serviceName}
+                    balance={balance}
+                    isLoading={payment.isProcessing}
+                />, 
+                document.body
+            )}
         </div>
     );
 }

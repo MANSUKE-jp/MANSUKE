@@ -68,9 +68,17 @@ async function createUniqueTempOrder(ordersDb, orderData) {
  * 料金を支払い、レシート(Receipt)を発行する関数。
  * フロントエンドから決済モーダル経由で呼ばれる。
  */
-exports.processPayment = onCall({ region: "asia-northeast2" }, async (request) => {
+exports.processPayment = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
-    const { amount, serviceId, description } = request.data;
+    let { amount, serviceId, description } = request.data;
+
+    // ==== Security Update: Enforce Server-Side Amount ====
+    // 決済金額はクライアントから送信された値ではなく、サーバー側で定義された金額を強制する
+    if (serviceId === 'hirusupa_gemini') {
+        amount = 5;
+        description = "ラジオネーム生成（AI）";
+    }
+    // =====================================================
 
     if (!amount || amount <= 0 || !Number.isInteger(amount)) {
         throw new HttpsError('invalid-argument', '不正な金額です。');
@@ -167,7 +175,7 @@ exports.processPayment = onCall({ region: "asia-northeast2" }, async (request) =
  * ただし今回はサービス間連携のため、フロントからでも呼べるようにしておくか、Admin SDKでのみ呼べるようにする。
  * レシートが used: false の場合のみ返金可能。）
  */
-exports.refundPayment = onCall({ region: "asia-northeast2" }, async (request) => {
+exports.refundPayment = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { receiptId } = request.data;
 
@@ -256,7 +264,7 @@ exports.refundPayment = onCall({ region: "asia-northeast2" }, async (request) =>
 /**
  * Handles MANSUKE PREPAID CARD redemption.
  */
-exports.redeemCard = onCall(async (request) => {
+exports.redeemCard = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { pinCode, userPin } = request.data;
 

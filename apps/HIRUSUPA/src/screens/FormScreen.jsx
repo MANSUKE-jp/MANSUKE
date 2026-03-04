@@ -169,9 +169,10 @@ const FormScreen = ({ onBack, onSubmit, user, refreshBalance, isBalanceLoading }
 
     if (finalData.radioNameType === 'gemini') {
       payment.requestPayment({
-        amount: 5,
+        amount: 5, // Actually unconfirmed, but kept to fulfill prop requirements
         serviceName: 'HIRUSUPA',
-        description: 'Geminiによるラジオネーム自動生成（100件）',
+        description: 'Geminiによるラジオネーム自動生成（最大100件）\n※生成されるごとに自動で5円が加算されます。\n※最終的な合計金額は停止時にお知らせします。',
+        isPreApproval: true, // NEW: Skip immediate background charge
         onSuccess: (receiptId) => {
           onSubmit({ ...finalData, receiptId });
         },

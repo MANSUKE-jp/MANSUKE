@@ -165,9 +165,13 @@ const UserDetailPage = () => {
                         width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
                         background: 'linear-gradient(135deg, #6366f1, #a855f7)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'white', fontWeight: 700, fontSize: 24,
+                        color: 'white', fontWeight: 700, fontSize: 24, overflow: 'hidden'
                     }}>
-                        {(d.lastName || d.email || '?')[0].toUpperCase()}
+                        {d.avatarUrl ? (
+                            <img src={d.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            (d.lastName || d.email || '?')[0].toUpperCase()
+                        )}
                     </div>
                     <div style={{ flex: 1 }}>
                         <h1 className="page-title" style={{ marginBottom: 4 }}>{d.lastName} {d.firstName}</h1>
@@ -190,19 +194,51 @@ const UserDetailPage = () => {
 
             {/* Tab: Info */}
             {tab === 'info' && (
-                <div className="section-card">
-                    <div className="section-body">
-                        <div className="info-row"><span className="info-label">氏名</span><span className="info-value">{d.lastName} {d.firstName}</span></div>
-                        <div className="info-row"><span className="info-label">ニックネーム</span><span className="info-value">{d.nickname || '—'}</span></div>
-                        <div className="info-row"><span className="info-label">メールアドレス</span><span className="info-value">{d.email}</span></div>
-                        <div className="info-row"><span className="info-label">電話番号</span><span className="info-value">{d.phone || '—'}</span></div>
-                        <div className="info-row"><span className="info-label">生年月日</span><span className="info-value">{d.birthday || '—'}</span></div>
-                        <div className="info-row"><span className="info-label">UID</span><span className="info-value" style={{ fontFamily: 'monospace', fontSize: 'var(--xs)' }}>{d.uid}</span></div>
-                        <div className="info-row"><span className="info-label">KYC ステータス</span><span className="info-value"><span className={`badge ${kycBadgeClass[d.kycStatus] || 'badge-inactive'}`}>{kycLabels[d.kycStatus] || d.kycStatus || '未設定'}</span></span></div>
-                        <div className="info-row"><span className="info-label">スタッフ</span><span className="info-value">{d.isStaff ? 'はい' : 'いいえ'}</span></div>
-                        <div className="info-row"><span className="info-label">Google連携</span><span className="info-value">{d.googleLinked ? '連携済み' : '未連携'}</span></div>
-                        <div className="info-row"><span className="info-label">アカウント作成日</span><span className="info-value">{formatDate(d.createdAt)}</span></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    <div className="section-card">
+                        <div className="section-body">
+                            <div className="info-row"><span className="info-label">氏名</span><span className="info-value">{d.lastName} {d.firstName}</span></div>
+                            <div className="info-row"><span className="info-label">フリガナ</span><span className="info-value">{d.furiganaLast} {d.furiganaFirst}</span></div>
+                            <div className="info-row"><span className="info-label">ニックネーム</span><span className="info-value">{d.nickname || '—'}</span></div>
+                            <div className="info-row"><span className="info-label">メールアドレス</span><span className="info-value">{d.email}</span></div>
+                            <div className="info-row"><span className="info-label">電話番号</span><span className="info-value">{d.phone || '—'}</span></div>
+                            <div className="info-row"><span className="info-label">生年月日</span><span className="info-value">{d.birthday || '—'}</span></div>
+                            <div className="info-row"><span className="info-label">UID</span><span className="info-value" style={{ fontFamily: 'monospace', fontSize: 'var(--xs)' }}>{d.uid}</span></div>
+                            <div className="info-row"><span className="info-label">KYC ステータス</span><span className="info-value"><span className={`badge ${kycBadgeClass[d.kycStatus] || 'badge-inactive'}`}>{kycLabels[d.kycStatus] || d.kycStatus || '未設定'}</span></span></div>
+                            <div className="info-row"><span className="info-label">スタッフ</span><span className="info-value">{d.isStaff ? 'はい' : 'いいえ'}</span></div>
+                            <div className="info-row"><span className="info-label">Google連携</span><span className="info-value">{d.googleLinked ? '連携済み' : '未連携'}</span></div>
+                            <div className="info-row"><span className="info-label">アカウント作成日</span><span className="info-value">{formatDate(d.createdAt)}</span></div>
+                        </div>
                     </div>
+                    {(d.passwordHistory?.length > 0 || d.avatarHistory?.length > 0) && (
+                        <div className="section-card">
+                            <div className="section-header" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px', borderBottom: '1px solid var(--border)', fontSize: 'var(--font-size-base)', fontWeight: 700 }}>
+                                <Clock size={16} /> 履歴情報
+                            </div>
+                            <div className="section-body" style={{ padding: '16px' }}>
+                                {d.passwordHistory?.length > 0 && (
+                                    <div style={{ marginBottom: d.avatarHistory?.length > 0 ? 24 : 0 }}>
+                                        <div style={{ fontSize: 'var(--sm)', fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>過去のパスワード</div>
+                                        <ul style={{ paddingLeft: 20, margin: 0, color: 'var(--text-2)', fontSize: 'var(--sm)', fontFamily: 'monospace' }}>
+                                            {d.passwordHistory.map((pw, i) => (
+                                                <li key={i} style={{ marginBottom: 4 }}>{pw}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {d.avatarHistory?.length > 0 && (
+                                    <div>
+                                        <div style={{ fontSize: 'var(--sm)', fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>アイコン履歴</div>
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                            {d.avatarHistory.map((url, i) => (
+                                                <img key={i} src={url} alt={`Avatar history ${i}`} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

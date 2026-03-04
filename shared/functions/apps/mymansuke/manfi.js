@@ -1,5 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore");
 const logger = require("firebase-functions/logger");
 
 // ──────────────────────────────────────────────
@@ -61,9 +62,12 @@ exports.manFiWebhook = onRequest({ cors: true, region: 'asia-northeast2' }, asyn
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const registeredMonth = `${year}${month}`;
 
-        const manFiRef = admin.firestore().collection('users').doc(uid).collection('man-fi').doc('info');
+        // Specify the "users" database instance
+        const firestoreUsersDb = getFirestore("users");
+
+        const manFiRef = firestoreUsersDb.collection('users').doc(uid).collection('man-fi').doc('info');
         
-        await admin.firestore().runTransaction(async (transaction) => {
+        await firestoreUsersDb.runTransaction(async (transaction) => {
             const docSnap = await transaction.get(manFiRef);
             
             let devices = [];

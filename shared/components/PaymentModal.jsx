@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertTriangle, ShieldCheck, CreditCard, Sparkles, Loader2 } from 'lucide-react';
+import { CreditCard, AlertTriangle, Loader2 } from 'lucide-react';
 
 export const PaymentModal = ({
     isOpen,
@@ -42,7 +42,7 @@ export const PaymentModal = ({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
                     {/* Backdrop */}
                     <motion.div
                         variants={overlayVariants}
@@ -50,7 +50,7 @@ export const PaymentModal = ({
                         animate="visible"
                         exit="exit"
                         onClick={!isLoading ? onClose : undefined}
-                        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                        style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
                     />
 
                     {/* Modal Content */}
@@ -59,112 +59,88 @@ export const PaymentModal = ({
                         initial="hidden"
                         animate="visible"
                         exit="exit"
-                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden font-sans border border-gray-100"
-                        style={{ fontFamily: "'Inter', 'Outfit', sans-serif" }}
+                        style={{ 
+                            position: 'relative', width: '100%', maxWidth: '400px', 
+                            background: '#ffffff', borderRadius: '24px', 
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', 
+                            overflow: 'hidden', fontFamily: "'Inter', sans-serif",
+                            padding: '32px', textAlign: 'center', border: '1px solid #f3f4f6'
+                        }}
                     >
-                        {/* Header Decoration */}
-                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-10"></div>
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 blur-[80px] rounded-full opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
+                        <div style={{ width: 64, height: 64, margin: '0 auto 16px', background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a' }}>
+                            <CreditCard size={32} />
+                        </div>
+                        <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 8px 0', color: '#0f172a' }}>決済の確認</h2>
+                        <div style={{ fontSize: '14px', color: '#64748b', marginBottom: 24, fontWeight: 700 }}>
+                            {serviceName === 'donation' ? 'MANSUKE サービス' : serviceName || 'MANSUKE サービス'}
+                        </div>
 
-                        <div className="relative p-8 flex flex-col items-center">
-                            {/* Icon */}
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl shadow-indigo-200 flex items-center justify-center mb-6 text-white transform -rotate-3 hover:rotate-0 transition-transform">
-                                <CreditCard size={32} />
+                        <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '24px', marginBottom: 24, border: '1px solid #f1f5f9' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>お支払い金額</div>
+                            <div style={{ fontSize: 36, fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
+                                {isHirusupa ? '未確定' : `¥${amount.toLocaleString()}`}
                             </div>
+                            <div style={{ marginTop: 16, fontSize: '14px', fontWeight: 600, color: '#475569' }}>
+                                {description}
+                            </div>
+                        </div>
 
-                            <h2 className="text-2xl font-black text-gray-900 mb-1 tracking-tight text-center">
-                                決済の確認
-                            </h2>
-                            <p className="text-sm font-bold text-indigo-600 mb-8 bg-indigo-50 px-3 py-1 rounded-full">
-                                {serviceName || 'MANSUKE サービス'}
-                            </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 16px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#64748b' }}>現在のアカウント残高</span>
+                            <span style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>¥{balance.toLocaleString()}</span>
+                        </div>
 
-                            {/* Payment Details */}
-                            <div className="w-full bg-gray-50 rounded-2xl p-6 mb-6 border border-gray-100 shadow-inner">
-                                <div className="flex flex-col items-center justify-center mb-6">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">お支払い金額</span>
-                                    {isHirusupa ? (
-                                        <span className="text-2xl font-black text-gray-900 tracking-tight">未確定金額</span>
-                                    ) : (
-                                        <div className="flex items-baseline gap-0.5">
-                                            <span className="text-2xl font-bold text-gray-500">¥</span>
-                                            <span className="text-5xl font-black text-gray-900 tracking-tighter">{amount}</span>
-                                        </div>
-                                    )}
+                        {isHirusupa ? null : canAfford ? (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(52,211,153,0.1)', borderRadius: '12px', marginBottom: 24 }}>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    決済後残高
+                                </span>
+                                <span style={{ fontSize: '16px', fontWeight: 800, color: '#059669' }}>
+                                    ¥{(balance - amount).toLocaleString()}
+                                </span>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'left', padding: '16px', background: 'rgba(244,63,94,0.1)', borderRadius: '12px', marginBottom: 24, color: '#e11d48' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4, fontSize: '14px' }}>
+                                    <AlertTriangle size={16} /> 残高が不足しています
                                 </div>
-                                <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4"></div>
-                                <div className="text-center">
-                                    <p className="text-sm font-bold text-gray-600 break-words">{description}</p>
+                                <div style={{ fontSize: '12px', paddingLeft: 22, fontWeight: 600, opacity: 0.9 }}>
+                                    あと ¥{(amount - balance).toLocaleString()} 必要です。
                                 </div>
                             </div>
+                        )}
 
-                            {/* Balance Info */}
-                            <div className="w-full mb-8">
-                                <div className="flex justify-between items-center px-4 mb-2">
-                                    <span className="text-sm font-bold text-gray-500">アカウント残高</span>
-                                    <span className="text-sm font-black text-gray-900">¥{balance}</span>
-                                </div>
-
-                                {isHirusupa ? null : canAfford ? (
-                                    <div className="flex justify-between items-center px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
-                                        <div className="flex items-center gap-2 text-emerald-600">
-                                            <CheckCircle size={16} />
-                                            <span className="text-xs font-bold">決済後残高</span>
-                                        </div>
-                                        <span className="text-sm font-black text-emerald-700">¥{balance - amount}</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-2 p-4 bg-red-50 rounded-xl border border-red-100">
-                                        <div className="flex items-center gap-2 text-red-600">
-                                            <AlertTriangle size={18} className="shrink-0" />
-                                            <span className="text-sm font-bold">残高が不足しています</span>
-                                        </div>
-                                        <p className="text-xs text-red-500/80 font-medium pl-6">
-                                            あと ¥{amount - balance} 必要です。チャージしてから再度お試しください。
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Actions */}
-                            <div className="w-full flex flex-col gap-3">
-                                <button
-                                    onClick={onConfirm}
-                                    disabled={!canAfford || isLoading}
-                                    className="relative w-full py-4 rounded-xl font-black text-lg transition-all active:scale-[0.98] disabled:scale-100 disabled:opacity-50 disabled:cursor-not-allowed group overflow-hidden bg-gray-900 text-white hover:bg-black shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.2)] disabled:shadow-none"
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <button 
+                                onClick={onConfirm} 
+                                disabled={!canAfford || isLoading}
+                                style={{ 
+                                    padding: '16px', borderRadius: '12px', fontSize: '16px', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                    background: (!canAfford || isLoading) ? '#cbd5e1' : '#0f172a',
+                                    color: '#ffffff', fontWeight: 700, border: 'none', cursor: (!canAfford || isLoading) ? 'not-allowed' : 'pointer',
+                                    transition: 'background 0.2s', width: '100%'
+                                }}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 size={20} className="animate-spin" />
+                                        <span>処理中...</span>
+                                    </>
+                                ) : '決済を確定する'}
+                            </button>
+                            {!isLoading && (
+                                <button 
+                                    onClick={onClose} 
+                                    style={{ 
+                                        padding: '16px', borderRadius: '12px', fontSize: '14px',
+                                        background: 'transparent', color: '#64748b', fontWeight: 700,
+                                        border: 'none', cursor: 'pointer', transition: 'color 0.2s', width: '100%'
+                                    }}
                                 >
-                                    {isLoading ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Loader2 size={20} className="animate-spin" />
-                                            <span>処理中...</span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <span className="relative z-10 font-bold flex items-center justify-center gap-2">
-                                                決済を確定する
-                                                <Sparkles size={18} className="text-yellow-400" />
-                                            </span>
-                                        </>
-                                    )}
-                                    {/* Shimmer effect */}
-                                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite] z-0"></div>
+                                    キャンセル
                                 </button>
-
-                                {!isLoading && (
-                                    <button
-                                        onClick={onClose}
-                                        className="w-full py-3 rounded-xl font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                                    >
-                                        キャンセル
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Footer */}
-                            <div className="w-full mt-6 pt-6 border-t border-gray-100 flex items-center justify-center gap-2 text-gray-400">
-                                <ShieldCheck size={14} />
-                                <span className="text-[10px] uppercase tracking-widest font-bold">Secured by MANSUKE</span>
-                            </div>
+                            )}
                         </div>
                     </motion.div>
                 </div>

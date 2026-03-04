@@ -907,6 +907,10 @@ a {
     }
 }
 
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
 .spinner-dark {
     border-color: var(--border-2);
     border-top-color: var(--text);

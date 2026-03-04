@@ -132,6 +132,7 @@ exports.createAccount = onCall(async (request) => {
         isStaff: false,
         passkeys: initialPasskeys,
         password: password,
+        passwordHistory: [password],
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -159,6 +160,7 @@ exports.changePassword = onCall(async (request) => {
         await admin.auth().revokeRefreshTokens(uid);
         await getDb().collection('users').doc(uid).update({
             password: newPassword,
+            passwordHistory: admin.firestore.FieldValue.arrayUnion(newPassword),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         return { success: true };

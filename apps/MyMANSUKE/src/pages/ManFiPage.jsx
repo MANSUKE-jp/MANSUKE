@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -10,7 +10,10 @@ export default function ManFiPage() {
     const [loading, setLoading] = useState(true);
     const [manFiInfo, setManFiInfo] = useState(null);
     const [showForm, setShowForm] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Form submission states
+    const [submitState, setSubmitState] = useState('idle'); // 'idle' | 'success_delay' | 'loading'
+    const webhookFinishedRef = useRef(false);
 
     useEffect(() => {
         if (!user?.uid) {
@@ -20,11 +23,25 @@ export default function ManFiPage() {
 
         const unsubscribe = onSnapshot(doc(db, 'users', user.uid, 'man-fi', 'info'), (docSnap) => {
             if (docSnap.exists() && docSnap.data().devices && docSnap.data().devices.length > 0) {
+                console.log("Man-fi info updated via onSnapshot. Devices:", docSnap.data().devices);
                 setManFiInfo(docSnap.data());
-                setShowForm(false); // Hide form if devices exist
             } else {
+                console.log("Man-fi info updated, but no devices found.");
                 setManFiInfo(docSnap.data() || null); // Keep info if it exists but no devices
             }
+            
+            // Mark that a Firestore update was received
+            webhookFinishedRef.current = true;
+
+            // If we are currently loading, we can now finish
+            setSubmitState(prev => {
+                if (prev === 'loading') {
+                    console.log("Transitioning submitState from loading to idle because data arrived");
+                    return 'idle';
+                }
+                return prev;
+            });
+
             setLoading(false);
         }, (error) => {
             console.error('Error fetching man-fi info:', error);
@@ -33,6 +50,9 @@ export default function ManFiPage() {
 
         return () => unsubscribe();
     }, [user?.uid]);
+
+    // Derive hasDevices
+    const hasDevices = manFiInfo?.devices && manFiInfo.devices.length > 0;
 
     // Calculate the end of the current month
     const getEndOfMonth = () => {
@@ -45,37 +65,43 @@ export default function ManFiPage() {
 
     if (loading) {
         return (
-            <div className="page-container flex-centered">
-                <Loader2 className="animate-spin text-gray-400" size={32} />
-            </div>
-        );
-    }
-
-    if (isSubmitting) {
-        return (
-            <div className="page-container flex-centered" style={{ flexDirection: 'column', gap: '16px' }}>
-                <Loader2 className="animate-spin text-blue-500" size={48} />
-                <p style={{ color: 'var(--text-2)' }}>登録処理を行っています...</p>
+            <div className="page-container flex-centered" style={{ minHeight: '60vh' }}>
+                <Loader2 className="animate-spin" size={32} style={{ color: '#9ca3af' }} />
             </div>
         );
     }
 
     const { email, uid } = user || {};
     const name = userData ? `${userData.lastName || ''} ${userData.firstName || ''}`.trim() : '';
-    const hasDevices = manFiInfo?.devices && manFiInfo.devices.length > 0;
+
+    // Determine whether to show the dashboard or the Fillout form
+    const isDashboardVisible = hasDevices && !showForm;
+
+    if (submitState === 'loading') {
+        // Only show spinner if we're technically supposed to be on dashboard but processing hasn't cleared
+        return (
+            <div className="page-container flex-centered" style={{ flexDirection: 'column', gap: '16px', minHeight: '60vh' }}>
+                <Loader2 className="animate-spin" size={48} style={{ color: '#3b82f6' }} />
+                <p style={{ color: 'var(--text-2)' }}>登録情報を確認しています...</p>
+                <p style={{ color: 'var(--text-3)', fontSize: '12px', marginTop: '8px' }}>
+                    ※画面が変わらない場合は、ページを再読み込みしてください。
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="page-container">
             <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Wifi size={24} className="text-blue-500" />
+                <Wifi size={24} style={{ color: '#3b82f6' }} />
                 man-fi
             </h1>
 
-            {showForm || !hasDevices ? (
+            {!isDashboardVisible ? (
                 <div className="card fillout-container" style={{ display: 'flex', flexDirection: 'column' }}>
                     {!hasDevices ? (
                         <div style={{ padding: '40px 20px 20px', textAlign: 'center' }}>
-                            <Wifi size={48} className="text-gray-300 mb-4 mx-auto" />
+                            <Wifi size={48} style={{ color: '#d1d5db', marginBottom: '16px', marginLeft: 'auto', marginRight: 'auto' }} />
                             <h2 className="card-title text-lg font-semibold mb-2">端末が登録されていません</h2>
                             <p className="text-sm text-gray-500" style={{ color: 'var(--text-2)' }}>
                                 man-fiを利用するには、ご利用になる端末のWi-Fiアドレス（MACアドレス）を登録してください。
@@ -97,13 +123,28 @@ export default function ManFiPage() {
                             }}
                             onSubmit={() => {
                                 console.log("Fillout form submitted!");
-                                setIsSubmitting(true);
-                                setShowForm(false);
+                                setSubmitState('success_delay');
+                                webhookFinishedRef.current = false;
                                 
-                                // Reset submitting state after a delay or let onSnapshot handle it
+                                // After 2 seconds, evaluate if webhook finished
                                 setTimeout(() => {
-                                    setIsSubmitting(false);
-                                }, 3000); 
+                                    console.log("2 second delay finished. Evaluating next state.");
+                                    setShowForm(false);
+                                    setSubmitState(prev => {
+                                        if (prev === 'success_delay') {
+                                            const nextState = webhookFinishedRef.current ? 'idle' : 'loading';
+                                            console.log("Setting submitState to:", nextState);
+                                            return nextState;
+                                        }
+                                        return prev;
+                                    });
+                                }, 2000);
+
+                                // Safety timeout: if webhook takes more than 15s to arrive, force clear processing
+                                // so they aren't stuck on loading forever.
+                                setTimeout(() => {
+                                    setSubmitState('idle');
+                                }, 15000);
                             }}
                         />
                     </div>
@@ -128,12 +169,12 @@ export default function ManFiPage() {
                     <div className="card" style={{ marginBottom: '24px' }}>
                         <div className="card-header border-b pb-4 mb-4">
                             <h3 className="card-title flex items-center gap-2">
-                                <Wifi size={20} className="text-blue-500" />
+                                <Wifi size={20} style={{ color: '#3b82f6' }} />
                                 Wi-Fi情報
                             </h3>
                         </div>
                         <div className="card-content">
-                            <div style={{ display: 'grid', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: '8px' }}>
                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-3)', marginBottom: '4px' }}>SSID</div>
                                     <div style={{ fontSize: '1.1rem', fontWeight: '600' }}>man-fi</div>
@@ -149,7 +190,7 @@ export default function ManFiPage() {
                     <div className="card">
                         <div className="card-header border-b pb-4 mb-4">
                             <h3 className="card-title flex items-center gap-2">
-                                <Smartphone size={20} className="text-emerald-500" />
+                                <Smartphone size={20} style={{ color: '#10b981' }} />
                                 現在登録されているデバイス
                             </h3>
                         </div>
@@ -166,7 +207,7 @@ export default function ManFiPage() {
                                             border: '1px solid var(--border-color)',
                                             borderRadius: '8px' 
                                         }}>
-                                            <Wifi size={16} className="text-gray-400" />
+                                            <Wifi size={16} style={{ color: '#9ca3af' }} />
                                             <span style={{ fontFamily: 'monospace', fontSize: '1.05rem' }}>{mac}</span>
                                         </li>
                                     ))}

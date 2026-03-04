@@ -116,12 +116,76 @@ export async function authenticatePasskey(challengeData) {
     };
 }
 
-// ── isPasskeySupported ────────────────────────────────────────────
+// ── isWebAuthnAvailable (sync, basic API check) ─────────────────────
 
-export function isPasskeySupported() {
+export function isWebAuthnAvailable() {
     return (
         typeof window !== 'undefined' &&
         !!window.PublicKeyCredential &&
         typeof window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
     );
+}
+
+// ── isPasskeySupported (async, real availability check) ──────────────
+
+export async function isPasskeySupported() {
+    if (
+        typeof window === 'undefined' ||
+        !window.PublicKeyCredential
+    ) return false;
+    try {
+        // Check if a platform authenticator (Touch ID, Face ID, etc.) is available
+        const platformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        if (platformAvailable) return true;
+
+        // Even if no platform authenticator, the browser may support
+        // cross-platform authenticators (security keys, etc.)
+        // In that case WebAuthn is still usable
+        if (typeof PublicKeyCredential.isConditionalMediationAvailable === 'function') {
+            return true; // Modern browser with passkey support
+        }
+
+        // Fallback: WebAuthn API exists, allow attempt
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+// ── getPasskeyErrorMessage ───────────────────────────────────────────
+
+export function getPasskeyErrorMessage(err) {
+    if (!err) return 'パスキー操作に失敗しました';
+
+    // User cancelled
+    if (err.name === 'NotAllowedError' || err.message?.includes('cancel')) {
+        return null; // null = user cancelled, no error to show
+    }
+
+    // No authenticator available
+    if (err.name === 'NotSupportedError') {
+        return 'このデバイスはパスキーに対応していません。別のデバイスまたはブラウザをお試しください。';
+    }
+
+    // Security context issue
+    if (err.name === 'SecurityError') {
+        return 'セキュリティエラーが発生しました。HTTPS接続を確認してください。';
+    }
+
+    // Timeout
+    if (err.name === 'AbortError') {
+        return 'パスキー操作がタイムアウトしました。もう一度お試しください。';
+    }
+
+    // Invalid state (e.g., credential already registered)
+    if (err.name === 'InvalidStateError') {
+        return 'このパスキーはすでに登録されています。';
+    }
+
+    // Cloud function errors
+    if (err.code === 'functions/not-found') {
+        return 'チャレンジが見つかりません。再度お試しください。';
+    }
+
+    return err.message || 'パスキー操作に失敗しました';
 }

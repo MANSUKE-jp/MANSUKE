@@ -142,6 +142,7 @@ exports.updateAvatarUrl = onCall(async (request) => {
 
     await getDb().collection('users').doc(uid).update({
         avatarUrl,
+        avatarHistory: admin.firestore.FieldValue.arrayUnion(avatarUrl),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

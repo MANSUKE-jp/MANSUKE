@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { auth, googleProvider, callFunction } from '../firebase';
 import { validatePassword, validateNickname, isPasswordValid, isNicknameValid, isEmailValid, isPhoneValid } from '../utils/validators';
-import { registerPasskey, isPasskeySupported } from '../utils/passkey';
+import { registerPasskey, isPasskeySupported, getPasskeyErrorMessage } from '../utils/passkey';
 import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
 
@@ -381,8 +381,9 @@ export default function RegisterPage() {
 
     // ── Step 10: Passkey ──
     const handlePasskeySetup = async () => {
-        if (!isPasskeySupported()) {
-            setErrors(['このブラウザはパスキーをサポートしていません']);
+        const supported = await isPasskeySupported();
+        if (!supported) {
+            setErrors(['このブラウザまたはデバイスはパスキーに対応していません。別のデバイスまたはブラウザをお試しください。']);
             return;
         }
         setSubmitting(true);
@@ -400,8 +401,9 @@ export default function RegisterPage() {
             await verifyFn({ tempToken: challengeData.tempToken, attestation });
             setPasskeyDone(true);
         } catch (err) {
-            if (!err.message?.includes('cancel') && err.name !== 'NotAllowedError') {
-                setErrors([err.message || 'パスキーの設定に失敗しました']);
+            const msg = getPasskeyErrorMessage(err);
+            if (msg !== null) {
+                setErrors([msg]);
             }
         } finally {
             setSubmitting(false);
