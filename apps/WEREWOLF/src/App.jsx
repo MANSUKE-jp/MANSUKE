@@ -363,29 +363,29 @@ export default function App() {
     // 表示分岐: アプリ内ブラウザ警告 (最優先)
     if (isInAppBrowser) {
         return (
-            <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col items-center justify-center p-6 text-center text-white overflow-hidden font-sans">
+            <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col items-center justify-center p-6 text-center text-gray-200 overflow-hidden font-sans">
                 <div className="max-w-md w-full flex flex-col items-center gap-6 animate-fade-in-up">
-                    <div className="p-6 bg-yellow-900/20 rounded-full border border-yellow-500/30 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-                        <ExternalLink size={64} className="text-yellow-500" />
+                    <div className="p-6 bg-yellow-100 rounded-full border border-yellow-500/30 shadow-sm">
+                        <ExternalLink size={64} className="text-yellow-600" />
                     </div>
-                    <h1 className="text-xl md:text-2xl font-black leading-tight">
+                    <h1 className="text-xl md:text-2xl font-black leading-tight text-gray-200">
                         MANSUKE WEREWOLFは<br />アプリ内ブラウザでは<br />ご利用いただけません
                     </h1>
-                    <div className="bg-gray-900/80 border border-gray-700 p-6 rounded-2xl text-sm text-gray-300 leading-relaxed text-left shadow-xl">
+                    <div className="bg-gray-800/80 border border-gray-700 p-6 rounded-2xl text-sm text-gray-300 leading-relaxed text-left shadow-sm">
                         Slackなどで直接リンクを開いた可能性があります。<br />
                         Safariなどのブラウザアプリから直接開いてください。
                     </div>
 
                     <div className="w-full space-y-3">
-                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">PAGE URL</p>
+                        <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">PAGE URL</p>
                         <button
                             onClick={handleCopyUrl}
-                            className="w-full bg-gray-800 border border-gray-600 hover:bg-gray-700 hover:border-gray-500 text-white rounded-xl py-4 px-4 flex items-center justify-between transition group relative overflow-hidden"
+                            className="w-full bg-gray-800/80 border border-gray-700 hover:bg-gray-950 hover:border-gray-600 text-gray-200 rounded-xl py-4 px-4 flex items-center justify-between transition group relative overflow-hidden shadow-sm"
                         >
-                            <span className="font-mono text-sm truncate mr-4 text-gray-300 group-hover:text-white transition">
+                            <span className="font-mono text-sm truncate mr-4 text-gray-300 group-hover:text-gray-200 transition">
                                 {window.location.href}
                             </span>
-                            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${isUrlCopied ? "bg-green-500/20 text-green-400" : "bg-black/30 text-gray-400 group-hover:text-white"}`}>
+                            <div className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${isUrlCopied ? "bg-green-900/30 text-green-400" : "bg-gray-800 text-gray-300 group-hover:text-gray-300"}`}>
                                 {isUrlCopied ? <Check size={14} /> : <Copy size={14} />}
                                 {isUrlCopied ? "COPIED" : "COPY"}
                             </div>
@@ -399,19 +399,19 @@ export default function App() {
     // 表示分岐: 画面サイズ警告 (PC/タブレット推奨)
     if (isMobileView) {
         return (
-            <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col items-center justify-center p-6 text-center text-white overflow-hidden">
+            <div className="fixed inset-0 z-[9999] bg-gray-950 flex flex-col items-center justify-center p-6 text-center text-gray-200 overflow-hidden">
                 <div className="max-w-md w-full flex flex-col items-center gap-6 animate-fade-in-up">
-                    <div className="p-6 bg-red-900/20 rounded-full border border-red-500/30">
+                    <div className="p-6 bg-red-900/20 rounded-full border border-red-100">
                         <MonitorX size={64} className="text-red-500" />
                     </div>
-                    <h1 className="text-xl md:text-2xl font-black leading-tight">
+                    <h1 className="text-xl md:text-2xl font-black leading-tight text-gray-200">
                         MANSUKE WEREWOLFは<br />スマートフォンまたは縦画面には<br />対応していません
                     </h1>
-                    <div className="bg-gray-900/80 border border-gray-700 p-6 rounded-2xl text-sm text-gray-300 leading-relaxed text-left">
+                    <div className="bg-gray-800/80 border border-gray-700 p-6 rounded-2xl text-sm text-gray-300 leading-relaxed text-left shadow-sm">
                         レスポンシブデザインに対応しようと頑張ったのですが、必要な情報量やゲーム体験を考慮した結果、タブレットやPCなどの大画面でのみ対応することとなりました。今後の対応予定はありません。<br /><br />
-                        ご迷惑をおかけしますが、タブレットやPCから <span className="text-blue-400 font-mono font-bold select-all">https://mansuke.cerinal.com/werewolf</span> にアクセスするか、以下のQRコードを読み取ってください。
+                        ご迷惑をおかけしますが、タブレットやPCから <span className="text-red-400 font-mono font-bold select-all">https://mansuke.cerinal.com/werewolf</span> にアクセスするか、以下のQRコードを読み取ってください。
                     </div>
-                    <div className="bg-white p-4 rounded-xl">
+                    <div className="bg-gray-800/80 p-4 rounded-xl shadow-sm border border-gray-700">
                         <img
                             src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://mansuke.cerinal.com/werewolf"
                             alt="QR Code"
@@ -435,28 +435,28 @@ export default function App() {
 
             {/* 復帰確認モーダル */}
             {showRestoreModal && (
-                <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[999] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-gray-900 border-2 border-blue-500/50 rounded-3xl p-6 md:p-8 w-full max-w-md shadow-[0_0_50px_rgba(59,130,246,0.3)] relative text-center">
-                        <div className="mx-auto w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mb-6 border border-blue-500/30 animate-pulse">
-                            <LogIn size={32} className="text-blue-400" />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[999] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-gray-800/80 border border-gray-700 rounded-3xl p-6 md:p-8 w-full max-w-md shadow-xl relative text-center">
+                        <div className="mx-auto w-16 h-16 bg-red-950/30 rounded-full flex items-center justify-center mb-6 animate-pulse">
+                            <LogIn size={32} className="text-red-400" />
                         </div>
 
-                        <h2 className="text-xl md:text-2xl font-black text-white mb-2 tracking-wide">WELCOME BACK</h2>
-                        <p className="text-gray-400 text-xs md:text-sm mb-8 leading-relaxed">
+                        <h2 className="text-xl md:text-2xl font-black text-gray-200 mb-2 tracking-wide">WELCOME BACK</h2>
+                        <p className="text-gray-300 text-xs md:text-sm mb-8 leading-relaxed">
                             中断されたゲームセッションが見つかりました。<br />
-                            部屋 <span className="font-mono text-blue-300 font-bold text-lg mx-1">{restoreRoomId}</span> に再接続しますか？
+                            部屋 <span className="font-mono text-red-400 font-bold text-lg mx-1">{restoreRoomId}</span> に再接続しますか？
                         </p>
 
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={handleConfirmRestore}
-                                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-sm transition transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
                             >
                                 <LogIn size={20} /> 再参加する
                             </button>
                             <button
                                 onClick={handleCancelRestore}
-                                className="w-full py-4 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white font-bold rounded-xl border border-gray-700 transition flex items-center justify-center gap-2"
+                                className="w-full py-4 bg-gray-800/80 hover:bg-gray-950 text-gray-300 font-bold rounded-xl border border-gray-700 transition flex items-center justify-center gap-2 shadow-sm"
                             >
                                 <XCircle size={20} /> 拒否してホームへ
                             </button>
@@ -472,7 +472,7 @@ export default function App() {
             {view === 'home' && <HomeScreen user={user} mansukeUser={mansukeUser} setRoomCode={setRoomCode} setView={setView} setNotification={setNotification} setMyPlayer={setMyPlayer} maintenanceMode={maintenanceMode} />}
             {view === 'logs' && <LogViewerScreen setView={setView} />}
             {view === 'lobby' && <LobbyScreen user={user} room={room} roomCode={roomCode} players={players} setNotification={setNotification} setView={setView} setRoomCode={setRoomCode} />}
-            {view === 'game' && <GameScreen user={user} mansukeUser={mansukeUser} room={room} roomCode={roomCode} players={players} myPlayer={myPlayer} setView={setView} />}
+            {view === 'game' && <GameScreen user={user} mansukeUser={mansukeUser} room={room} roomCode={roomCode} players={players} myPlayer={myPlayer} setView={setView} setRoomCode={setRoomCode} maintenanceMode={maintenanceMode} setNotification={setNotification} />}
             {view === 'result' && <ResultScreen user={user} room={room} roomCode={roomCode} players={players} myPlayer={myPlayer} setView={setView} setRoomCode={setRoomCode} maintenanceMode={maintenanceMode} setNotification={setNotification} />}
         </>
     );

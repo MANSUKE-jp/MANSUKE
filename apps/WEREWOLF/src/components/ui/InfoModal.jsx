@@ -14,21 +14,21 @@ export const InfoModal = ({ title, children, onClose }) => {
             {/* モーダルウィンドウ本体 */}
             {/* 内部クリック時のイベント伝播阻止 (onClick={e => e.stopPropagation()}) */}
             {/* 画面高さの85%を上限とし、それ以上は内部スクロールさせる */}
-            <div className="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-800/80 border border-gray-700 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
                 
                 {/* ヘッダーセクション */}
                 {/* タイトルと閉じるボタンを配置 */}
                 {/* shrink-0: コンテンツ量に関わらず高さを維持 */}
-                <div className="p-4 md:p-5 border-b border-gray-700 bg-gray-800/50 flex justify-between items-center shrink-0">
+                <div className="p-4 md:p-5 border-b border-gray-700 bg-gray-950/50 flex justify-between items-center shrink-0">
                     {/* タイトル表示 */}
-                    <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                    <h3 className="text-lg md:text-xl font-bold text-gray-200 flex items-center gap-2">
                         {title}
                     </h3>
                     
                     {/* 閉じるボタン (右上) */}
                     <button 
                         onClick={onClose} 
-                        className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full text-gray-400 hover:text-white transition"
+                        className="p-2 bg-gray-950 hover:bg-gray-800 rounded-full text-gray-300 hover:text-gray-200 transition"
                     >
                         <X size={20}/>
                     </button>

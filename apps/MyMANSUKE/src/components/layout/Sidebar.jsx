@@ -15,7 +15,7 @@ const NAV_ITEMS = [
     { to: '/security', icon: Shield, label: 'セキュリティ' },
     { to: '/redeem', icon: Gift, label: 'コード引換' },
     { to: '/payment', icon: CreditCard, label: 'お支払いと残高' },
-    { to: '/man-fi', icon: Wifi, label: 'man-fi' },
+    { to: '/vpn', icon: Wifi, label: 'VPN' },
     { to: '/others', icon: MoreHorizontal, label: 'その他' },
 ];
 

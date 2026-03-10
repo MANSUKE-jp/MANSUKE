@@ -252,8 +252,8 @@ export const LogViewerScreen = ({ setView }) => {
             return {
                 text: "強制終了",
                 subText: "ABORTED",
-                color: "text-gray-400",
-                bg: "bg-gray-800",
+                color: "text-gray-300",
+                bg: "bg-gray-950",
                 border: "border-gray-600",
                 gradient: "from-gray-800 to-gray-900",
                 icon: AlertOctagon
@@ -272,11 +272,11 @@ export const LogViewerScreen = ({ setView }) => {
             return { text: "てるてる坊主 勝利", subText: "TERUTERU WIN", color: "text-yellow-400", bg: "bg-yellow-900/30", border: "border-yellow-500", gradient: "from-yellow-900/20 to-black", icon: Trophy };
         }
 
-        if (isCitizenWin) return { text: "村人陣営 勝利", subText: "VILLAGER WIN", color: "text-green-400", bg: "bg-green-900/20", border: "border-green-600", gradient: "from-green-900/30 to-black", icon: Trophy };
+        if (isCitizenWin) return { text: "市民陣営 勝利", subText: "VILLAGER WIN", color: "text-green-400", bg: "bg-green-900/20", border: "border-green-600", gradient: "from-green-900/30 to-black", icon: Trophy };
         if (isWerewolfWin) return { text: "人狼陣営 勝利", subText: "WEREWOLF WIN", color: "text-red-400", bg: "bg-red-900/20", border: "border-red-600", gradient: "from-red-900/30 to-black", icon: Trophy };
         if (isFoxWin) return { text: "妖狐 勝利", subText: "FOX WIN", color: "text-orange-400", bg: "bg-orange-900/20", border: "border-orange-600", gradient: "from-orange-900/30 to-black", icon: Trophy };
 
-        return { text: "引き分け", subText: "DRAW", color: "text-gray-400", bg: "bg-gray-800", border: "border-gray-600", gradient: "from-gray-800 to-black", icon: Trophy };
+        return { text: "引き分け", subText: "DRAW", color: "text-gray-300", bg: "bg-gray-950", border: "border-gray-600", gradient: "from-gray-800 to-black", icon: Trophy };
     };
 
     const getStatusDisplay = (room) => {
@@ -294,9 +294,9 @@ export const LogViewerScreen = ({ setView }) => {
     };
 
     return (
-        <div className="h-screen bg-gray-950 text-gray-100 font-sans flex flex-col overflow-hidden relative">
+        <div className="h-screen bg-gray-950 text-gray-200 font-sans flex flex-col overflow-hidden relative">
             <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-900/10 rounded-full blur-[120px]"></div>
+                <div className="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-red-900/20 rounded-full blur-[120px]"></div>
                 <div className="absolute bottom-[-20%] left-[-10%] w-[800px] h-[800px] bg-purple-900/10 rounded-full blur-[120px]"></div>
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5"></div>
             </div>
@@ -305,7 +305,7 @@ export const LogViewerScreen = ({ setView }) => {
                 <button onClick={() => {
                     if (showDetail) { setShowDetail(false); setSearchResult(null); }
                     else setView('home');
-                }} className="flex items-center gap-2 text-gray-400 hover:text-white transition px-4 py-2 rounded-xl bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 backdrop-blur-sm group shadow-lg">
+                }} className="flex items-center gap-2 text-gray-300 hover:text-gray-200 transition px-4 py-2 rounded-xl bg-gray-950/50 hover:bg-gray-800/50 border border-gray-700/50 backdrop-blur-sm group shadow-lg">
                     <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> {showDetail ? "リストに戻る" : "ホームに戻る"}
                 </button>
             </div>
@@ -314,24 +314,24 @@ export const LogViewerScreen = ({ setView }) => {
 
                 {!showDetail ? (
                     <div className="flex flex-col md:flex-row gap-4 w-full h-full min-h-0">
-                        <div className="w-full md:w-[30%] md:min-w-[300px] md:max-w-sm flex flex-col gap-4 bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-700/50 shadow-2xl p-4 md:p-6 relative shrink-0 h-auto md:h-full max-h-[40vh] md:max-h-full">
+                        <div className="w-full md:w-[30%] md:min-w-[300px] md:max-w-sm flex flex-col gap-4 bg-gray-800/80 backdrop-blur-xl rounded-3xl border border-gray-700/50 shadow-2xl p-4 md:p-6 relative shrink-0 h-auto md:h-full max-h-[40vh] md:max-h-full">
                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-50"></div>
 
                             <div className="mb-2 shrink-0">
-                                <h3 className="text-lg md:text-xl font-black text-white flex items-center gap-2 mb-1"><Search size={20} md:size={24} className="text-blue-400" /> SEARCH</h3>
-                                <p className="text-[10px] md:text-xs text-gray-500">条件を指定して過去ログを検索</p>
+                                <h3 className="text-lg md:text-xl font-black text-gray-200 flex items-center gap-2 mb-1"><Search size={20} md:size={24} className="text-red-400" /> SEARCH</h3>
+                                <p className="text-[10px] md:text-xs text-gray-300">条件を指定して過去ログを検索</p>
                             </div>
 
                             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 md:space-y-6 pt-2">
-                                <div className="bg-gray-800/40 p-4 pt-6 rounded-2xl border border-gray-700/50 relative mt-2">
-                                    <div className="absolute -top-3 left-3 bg-gray-900 px-2 text-[10px] font-bold text-blue-400 border border-blue-500/30 rounded-full flex items-center gap-1">
+                                <div className="bg-gray-950/40 p-4 pt-6 rounded-2xl border border-gray-700/50 relative mt-2">
+                                    <div className="absolute -top-3 left-3 bg-gray-800/80 px-2 text-[10px] font-bold text-red-400 border border-red-500/30 rounded-full flex items-center gap-1">
                                         <Hash size={10} /> ID指定で検索
                                     </div>
                                     <div className="space-y-2 mt-1">
                                         <input
                                             type="text"
                                             placeholder="例: aBc123"
-                                            className="w-full bg-black/40 border border-gray-600 rounded-xl px-4 py-2 md:py-3 text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition font-mono tracking-wider placeholder-gray-700 text-sm"
+                                            className="w-full bg-black/40 border border-gray-600 rounded-xl px-4 py-2 md:py-3 text-gray-200 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50 transition font-mono tracking-wider placeholder-gray-700 text-sm"
                                             value={matchIdInput}
                                             onChange={(e) => setMatchIdInput(e.target.value)}
                                         />
@@ -339,22 +339,22 @@ export const LogViewerScreen = ({ setView }) => {
                                 </div>
 
                                 <div className="flex items-center justify-center">
-                                    <span className="text-[10px] text-gray-500 font-bold bg-gray-900 px-2 relative z-10">OR</span>
-                                    <div className="absolute w-full h-px bg-gray-800"></div>
+                                    <span className="text-[10px] text-gray-300 font-bold bg-gray-800/80 px-2 relative z-10">OR</span>
+                                    <div className="absolute w-full h-px bg-gray-950"></div>
                                 </div>
 
-                                <div className="bg-gray-800/40 p-4 pt-6 rounded-2xl border border-gray-700/50 relative mt-2">
-                                    <div className="absolute -top-3 left-3 bg-gray-900 px-2 text-[10px] font-bold text-purple-400 border border-purple-500/30 rounded-full flex items-center gap-1">
+                                <div className="bg-gray-950/40 p-4 pt-6 rounded-2xl border border-gray-700/50 relative mt-2">
+                                    <div className="absolute -top-3 left-3 bg-gray-800/80 px-2 text-[10px] font-bold text-purple-400 border border-purple-500/30 rounded-full flex items-center gap-1">
                                         <Filter size={10} /> 条件で検索
                                     </div>
 
                                     <div className="space-y-4 mt-1">
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] md:text-xs text-gray-400 font-bold flex items-center gap-1"><Calendar size={12} /> 日時</label>
+                                                <label className="text-[10px] md:text-xs text-gray-300 font-bold flex items-center gap-1"><Calendar size={12} /> 日時</label>
                                                 <button
                                                     onClick={() => { setSearchDate(""); setSearchTime(""); }}
-                                                    className="text-[10px] text-gray-500 hover:text-white bg-gray-800 px-2 py-0.5 rounded border border-gray-700 hover:bg-gray-700 transition flex items-center gap-1"
+                                                    className="text-[10px] text-gray-300 hover:text-gray-200 bg-gray-950 px-2 py-0.5 rounded border border-gray-700 hover:bg-gray-800 transition flex items-center gap-1"
                                                 >
                                                     <Trash2 size={10} /> 指定しない
                                                 </button>
@@ -362,12 +362,12 @@ export const LogViewerScreen = ({ setView }) => {
                                             <div className="flex flex-col gap-2">
                                                 <input
                                                     type="date"
-                                                    className={`w-full border rounded-xl pl-4 pr-4 py-2 md:py-3 outline-none transition text-xs md:text-sm appearance-none ${searchDate ? "bg-black/40 border-gray-600 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50" : "bg-gray-800/30 border-gray-700 text-gray-500"}`}
+                                                    className={`w-full border rounded-xl pl-4 pr-4 py-2 md:py-3 outline-none transition text-xs md:text-sm appearance-none ${searchDate ? "bg-black/40 border-gray-600 text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50" : "bg-gray-950/30 border-gray-700 text-gray-300"}`}
                                                     value={searchDate}
                                                     onChange={(e) => setSearchDate(e.target.value)}
                                                 />
                                                 <select
-                                                    className={`w-full border rounded-xl pl-4 pr-8 py-2 md:py-3 outline-none transition text-xs md:text-sm appearance-none ${searchTime ? "bg-black/40 border-gray-600 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50" : "bg-gray-800/30 border-gray-700 text-gray-500"}`}
+                                                    className={`w-full border rounded-xl pl-4 pr-8 py-2 md:py-3 outline-none transition text-xs md:text-sm appearance-none ${searchTime ? "bg-black/40 border-gray-600 text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50" : "bg-gray-950/30 border-gray-700 text-gray-300"}`}
                                                     value={searchTime}
                                                     onChange={(e) => setSearchTime(e.target.value)}
                                                 >
@@ -378,18 +378,18 @@ export const LogViewerScreen = ({ setView }) => {
                                         </div>
 
                                         <div className="flex items-center gap-4 opacity-30">
-                                            <div className="h-px bg-gray-500 flex-1"></div>
-                                            <span className="text-[10px] text-gray-400 font-bold">AND / OR</span>
-                                            <div className="h-px bg-gray-500 flex-1"></div>
+                                            <div className="h-px bg-gray-600 flex-1"></div>
+                                            <span className="text-[10px] text-gray-300 font-bold">AND / OR</span>
+                                            <div className="h-px bg-gray-600 flex-1"></div>
                                         </div>
 
                                         <div className="space-y-2 opacity-50 pointer-events-none">
-                                            <label className="text-[10px] md:text-xs text-gray-400 font-bold flex items-center gap-1"><User size={12} /> プレイヤー名</label>
+                                            <label className="text-[10px] md:text-xs text-gray-300 font-bold flex items-center gap-1"><User size={12} /> プレイヤー名</label>
                                             <input
                                                 type="text"
                                                 placeholder="現在は利用できません"
                                                 maxLength={10}
-                                                className="w-full bg-black/40 border border-gray-600 rounded-xl px-4 py-2 md:py-3 text-white outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition text-xs md:text-sm placeholder-gray-700"
+                                                className="w-full bg-black/40 border border-gray-600 rounded-xl px-4 py-2 md:py-3 text-gray-200 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/50 transition text-xs md:text-sm placeholder-gray-700"
                                                 value={searchName}
                                                 onChange={(e) => setSearchName(e.target.value)}
                                                 disabled
@@ -400,7 +400,7 @@ export const LogViewerScreen = ({ setView }) => {
                             </div>
 
                             {error && (
-                                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-center text-xs font-bold animate-pulse flex items-start justify-center gap-2 mb-2 shrink-0">
+                                <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-xl text-red-400 text-center text-xs font-bold animate-pulse flex items-start justify-center gap-2 mb-2 shrink-0">
                                     <AlertOctagon size={16} className="shrink-0 mt-0.5" /> <span>{error}</span>
                                 </div>
                             )}
@@ -408,7 +408,7 @@ export const LogViewerScreen = ({ setView }) => {
                             <div className="flex flex-col gap-2 mt-2 shrink-0">
                                 <button
                                     onClick={handleClearAll}
-                                    className="w-full py-2 md:py-3 rounded-xl border border-gray-600 text-gray-400 hover:bg-gray-800 hover:text-white transition flex items-center justify-center gap-2 text-xs md:text-sm font-bold hover:border-gray-500"
+                                    className="w-full py-2 md:py-3 rounded-xl border border-gray-600 text-gray-300 hover:bg-gray-950 hover:text-gray-200 transition flex items-center justify-center gap-2 text-xs md:text-sm font-bold hover:border-gray-500"
                                 >
                                     <RefreshCw size={16} /> 条件をすべてクリア
                                 </button>
@@ -416,7 +416,7 @@ export const LogViewerScreen = ({ setView }) => {
                                 <button
                                     onClick={() => handleSearchButton()}
                                     disabled={loading}
-                                    className="w-full py-3 md:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg transition transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
+                                    className="w-full py-3 md:py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-blue-500 hover:to-indigo-500 text-gray-200 font-bold rounded-xl shadow-lg transition transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm md:text-base"
                                 >
                                     {loading ? <Loader className="animate-spin" size={20} /> : <Search size={20} />}
                                     検索する
@@ -424,23 +424,23 @@ export const LogViewerScreen = ({ setView }) => {
                             </div>
                         </div>
 
-                        <div className="flex-1 min-w-0 bg-gray-900/40 rounded-3xl border border-gray-800/50 overflow-hidden relative backdrop-blur-sm flex flex-col h-full">
-                            <div className="p-4 border-b border-gray-800/50 bg-gray-900/50 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
-                                <h3 className="font-bold text-gray-300 flex items-center gap-2 text-sm md:text-base"><List size={18} className="text-blue-400" /> GAME LIST</h3>
-                                <span className="text-xs bg-black/30 px-2 py-1 rounded text-gray-500">{matchList.length} GAMES</span>
+                        <div className="flex-1 min-w-0 bg-gray-800/40 rounded-3xl border border-gray-700/50 overflow-hidden relative backdrop-blur-sm flex flex-col h-full">
+                            <div className="p-4 border-b border-gray-700/50 bg-gray-800/50 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
+                                <h3 className="font-bold text-gray-300 flex items-center gap-2 text-sm md:text-base"><List size={18} className="text-red-400" /> GAME LIST</h3>
+                                <span className="text-xs bg-black/30 px-2 py-1 rounded text-gray-300">{matchList.length} GAMES</span>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                                 {loading ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-blue-400">
+                                    <div className="h-full flex flex-col items-center justify-center text-red-400">
                                         <Loader className="animate-spin mb-4" size={48} />
                                         <p className="text-sm font-bold animate-pulse">ログを検索中...</p>
                                     </div>
                                 ) : matchList.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-300">
                                         <XCircle size={32} className="mb-2 opacity-50" />
                                         <p className="text-sm">条件に一致するデータは見つかりませんでした</p>
-                                        <p className="text-xs text-gray-600 mt-1">条件を変更して検索してください</p>
+                                        <p className="text-xs text-gray-300 mt-1">条件を変更して検索してください</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 gap-3">
@@ -456,10 +456,10 @@ export const LogViewerScreen = ({ setView }) => {
                                                     <div className="flex justify-between items-start">
                                                         <div className="flex flex-col">
                                                             <div className="flex items-center gap-3 mb-1">
-                                                                <span className="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] font-mono font-bold text-gray-400 tracking-widest border border-white/10">
+                                                                <span className="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] font-mono font-bold text-gray-300 tracking-widest border border-white/10">
                                                                     MATCH: {m.matchId}
                                                                 </span>
-                                                                <span className="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] font-mono font-bold text-gray-400 tracking-widest border border-white/10">
+                                                                <span className="bg-black/40 backdrop-blur px-2 py-0.5 rounded text-[10px] font-mono font-bold text-gray-300 tracking-widest border border-white/10">
                                                                     ROOM: {m.roomCode || m.id}
                                                                 </span>
                                                             </div>
@@ -468,8 +468,8 @@ export const LogViewerScreen = ({ setView }) => {
                                                             </div>
                                                         </div>
 
-                                                        <div className="bg-black/30 p-2 rounded-full border border-white/10 group-hover:bg-white/10 transition">
-                                                            <ChevronRight size={20} className="text-gray-400 group-hover:text-white" />
+                                                        <div className="bg-black/30 p-2 rounded-full border border-white/10 group-hover:bg-gray-800/10 transition">
+                                                            <ChevronRight size={20} className="text-gray-300 group-hover:text-gray-200" />
                                                         </div>
                                                     </div>
 
@@ -477,10 +477,10 @@ export const LogViewerScreen = ({ setView }) => {
                                                         <div className="flex items-center gap-2">
                                                             <div className="flex items-center gap-1.5 bg-black/30 px-2.5 py-1 rounded-full border border-white/5">
                                                                 <Crown size={12} className="text-yellow-500 fill-yellow-500/20" />
-                                                                <span className="text-xs font-bold text-gray-200 truncate max-w-[100px]">{m.hostName || "不明"}</span>
+                                                                <span className="text-xs font-bold text-gray-300 truncate max-w-[100px]">{m.hostName || "不明"}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-1.5 text-gray-400">
+                                                        <div className="flex items-center gap-1.5 text-gray-300">
                                                             <Clock size={12} />
                                                             <span className="text-xs font-mono font-medium">
                                                                 {new Date(safeGetMillis(m.createdAt)).toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -498,19 +498,19 @@ export const LogViewerScreen = ({ setView }) => {
                 ) : (
                     <div className="flex-1 min-w-0 flex flex-col md:flex-row gap-4 h-full px-0 md:px-[5%] justify-center overflow-hidden">
 
-                        <div className="md:hidden flex bg-gray-900/80 p-1 rounded-xl shrink-0">
-                            <button onClick={() => setDetailTab('info')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'info' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>情報</button>
-                            {!searchResult.room.inPersonMode && <button onClick={() => setDetailTab('chat')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'chat' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>チャット</button>}
-                            <button onClick={() => setDetailTab('log')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'log' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>ログ</button>
+                        <div className="md:hidden flex bg-gray-800/80 p-1 rounded-xl shrink-0">
+                            <button onClick={() => setDetailTab('info')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'info' ? 'bg-red-600 text-white' : 'text-gray-300'}`}>情報</button>
+                            {!searchResult.room.inPersonMode && <button onClick={() => setDetailTab('chat')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'chat' ? 'bg-red-600 text-white' : 'text-gray-300'}`}>チャット</button>}
+                            <button onClick={() => setDetailTab('log')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${detailTab === 'log' ? 'bg-red-600 text-white' : 'text-gray-300'}`}>ログ</button>
                         </div>
 
                         <div className={`flex-1 flex flex-col gap-4 min-h-0 h-full md:max-w-[33%] ${detailTab !== 'info' ? 'hidden md:flex' : 'flex'}`}>
                             <div className="bg-[#0f1115] border border-white/10 rounded-[32px] p-6 shrink-0 shadow-lg relative overflow-hidden flex flex-col items-center">
-                                <div className="w-full flex justify-between items-center mb-8 border-b border-gray-800 pb-3">
-                                    <span className="text-gray-500 text-[10px] font-bold tracking-[0.2em] uppercase">MATCH ID</span>
-                                    <span className="text-gray-500 text-[10px] font-mono tracking-wider">{new Date(safeGetMillis(searchResult.room.createdAt)).toLocaleString()}</span>
+                                <div className="w-full flex justify-between items-center mb-8 border-b border-gray-700 pb-3">
+                                    <span className="text-gray-300 text-[10px] font-bold tracking-[0.2em] uppercase">MATCH ID</span>
+                                    <span className="text-gray-300 text-[10px] font-mono tracking-wider">{new Date(safeGetMillis(searchResult.room.createdAt)).toLocaleString()}</span>
                                 </div>
-                                <div className="text-3xl md:text-5xl font-black text-white tracking-widest mb-8 md:mb-10 text-center drop-shadow-2xl whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                                <div className="text-3xl md:text-5xl font-black text-gray-200 tracking-widest mb-8 md:mb-10 text-center drop-shadow-2xl whitespace-nowrap overflow-hidden text-ellipsis w-full">
                                     {searchResult.room.matchId}
                                 </div>
                                 {getStatusDisplay(searchResult.room)}
@@ -524,14 +524,14 @@ export const LogViewerScreen = ({ setView }) => {
                         </div>
 
                         {!searchResult.room.inPersonMode && (
-                            <div className={`flex-1 flex flex-col min-h-0 h-full bg-gray-900/60 rounded-3xl border border-gray-700/50 overflow-hidden relative md:max-w-[33%] ${detailTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
-                                <div className="p-4 border-b border-gray-700 font-bold text-gray-300 flex items-center gap-2 bg-gray-800/40 backdrop-blur-sm shrink-0">
+                            <div className={`flex-1 flex flex-col min-h-0 h-full bg-gray-800/60 rounded-3xl border border-gray-700/50 overflow-hidden relative md:max-w-[33%] ${detailTab !== 'chat' ? 'hidden md:flex' : 'flex'}`}>
+                                <div className="p-4 border-b border-gray-700 font-bold text-gray-300 flex items-center gap-2 bg-gray-950/40 backdrop-blur-sm shrink-0">
                                     <MessageSquare size={18} className="text-green-400" /> 生存者チャット
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar bg-black/10 relative">
                                     {groupedChatMessages.length === 0 ? (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50 gap-2">
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-300 opacity-50 gap-2">
                                             <MessageSquare size={32} />
                                             <p className="text-xs font-bold">チャット履歴はありません</p>
                                         </div>
@@ -539,7 +539,7 @@ export const LogViewerScreen = ({ setView }) => {
                                         groupedChatMessages.map((group) => (
                                             <div key={group.day} className="relative">
                                                 <div className="sticky top-0 z-10 flex justify-center mb-4">
-                                                    <span className="bg-gray-800/90 border border-gray-600 px-3 py-0.5 rounded-full text-[10px] font-bold text-gray-300 shadow-sm backdrop-blur-sm">
+                                                    <span className="bg-gray-950/90 border border-gray-600 px-3 py-0.5 rounded-full text-[10px] font-bold text-gray-300 shadow-sm backdrop-blur-sm">
                                                         {group.day}日目
                                                     </span>
                                                 </div>
@@ -547,15 +547,15 @@ export const LogViewerScreen = ({ setView }) => {
                                                     {group.messages.map((msg, i) => (
                                                         <div key={i} className="flex flex-col items-start animate-fade-in">
                                                             <div className="flex items-baseline gap-2 mb-1 ml-1">
-                                                                <span className="text-[11px] font-bold text-blue-300">
+                                                                <span className="text-[11px] font-bold text-red-300">
                                                                     {msg.senderName}
-                                                                    <span className="ml-1 text-gray-500 font-normal">
+                                                                    <span className="ml-1 text-gray-300 font-normal">
                                                                         {getRoleLabel(msg.senderId)}
                                                                     </span>
                                                                 </span>
-                                                                <span className="text-[9px] text-gray-600">{new Date(safeGetMillis(msg.createdAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                <span className="text-[9px] text-gray-300">{new Date(safeGetMillis(msg.createdAt)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                             </div>
-                                                            <div className="bg-gray-800/80 border-gray-700/50 text-gray-200 p-3 rounded-2xl rounded-tl-none border text-sm break-words max-w-full shadow-sm">
+                                                            <div className="bg-gray-950/80 border-gray-700/50 text-gray-300 p-3 rounded-2xl rounded-tl-none border text-sm break-words max-w-full shadow-sm">
                                                                 {msg.text}
                                                             </div>
                                                         </div>
@@ -568,7 +568,7 @@ export const LogViewerScreen = ({ setView }) => {
                             </div>
                         )}
 
-                        <div className={`flex-1 flex flex-col min-h-0 h-full bg-gray-900/60 rounded-3xl border border-gray-700/50 overflow-hidden relative shadow-lg ${searchResult.room.inPersonMode ? 'md:max-w-[66%]' : 'md:max-w-[33%]'} ${detailTab !== 'log' ? 'hidden md:flex' : 'flex'}`}>
+                        <div className={`flex-1 flex flex-col min-h-0 h-full bg-gray-800/60 rounded-3xl border border-gray-700/50 overflow-hidden relative shadow-lg ${searchResult.room.inPersonMode ? 'md:max-w-[66%]' : 'md:max-w-[33%]'} ${detailTab !== 'log' ? 'hidden md:flex' : 'flex'}`}>
                             <div className="flex-1 overflow-hidden">
                                 <LogPanel logs={searchResult.room.logs} showSecret={true} user={{ uid: 'all' }} />
                             </div>

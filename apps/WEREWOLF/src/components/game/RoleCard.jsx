@@ -33,7 +33,7 @@ export const MiniRoleCard = ({ role, teammates, originalRole }) => {
 
   return (
       <div 
-        className="relative bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl p-4 text-center select-none cursor-pointer overflow-hidden border border-indigo-500/30 shadow-lg group touch-none h-40 md:h-56 flex flex-col items-center justify-center transition-transform active:scale-95 shrink-0"
+        className="relative bg-gray-800/80 rounded-2xl p-4 text-center select-none cursor-pointer overflow-hidden border border-gray-600 shadow-md group touch-none h-40 md:h-56 flex flex-col items-center justify-center transition-transform active:scale-95 shrink-0"
         // PC用イベント（マウス操作）
         onMouseDown={() => setRevealed(true)}
         onMouseUp={() => setRevealed(false)}
@@ -46,20 +46,20 @@ export const MiniRoleCard = ({ role, teammates, originalRole }) => {
           {/* revealedステートに応じてぼかし/透明度制御 */}
           <div className={`transition-all duration-200 w-full ${revealed ? "blur-0 opacity-100" : "blur-md opacity-50"}`}>
              {/* 役職アイコン */}
-             {roleDef?.icon && React.createElement(roleDef.icon, { size: 32, className: "mx-auto mb-1 md:mb-2 text-white w-6 h-6 md:w-8 md:h-8" })}
+             {roleDef?.icon && React.createElement(roleDef.icon, { size: 32, className: "mx-auto mb-1 md:mb-2 text-red-400 w-6 h-6 md:w-8 md:h-8" })}
              {/* 役職名 */}
-             <h3 className="text-lg md:text-xl font-black text-white mb-1">{displayName}</h3>
+             <h3 className="text-lg md:text-xl font-black text-gray-100 mb-1">{displayName}</h3>
              
              {/* 詳細情報（表示時のみレンダリング） */}
              {revealed && (
-               <div className="animate-fade-in space-y-1 md:space-y-2 bg-black/20 p-2 rounded-lg">
+               <div className="animate-fade-in space-y-1 md:space-y-2 bg-gray-800/80 border border-gray-700 shadow-sm p-2 rounded-lg">
                    {/* 役職説明文 */}
-                   <p className="text-[10px] md:text-[11px] text-indigo-100 leading-tight px-1">{roleDef?.desc}</p>
+                   <p className="text-[10px] md:text-[11px] text-gray-300 leading-tight px-1">{roleDef?.desc}</p>
                    
                    {/* 仲間リスト表示エリア */}
-                   <div className="pt-1 border-t border-white/10 mt-1">
-                       <p className="text-[9px] md:text-[10px] text-red-300 font-bold mb-0.5">【仲間】</p>
-                       <p className="text-[9px] md:text-[10px] text-white">
+                   <div className="pt-1 border-t border-gray-700 mt-1">
+                       <p className="text-[9px] md:text-[10px] text-red-600 font-bold mb-0.5">【仲間】</p>
+                       <p className="text-[9px] md:text-[10px] text-gray-200">
                            {/* 仲間がいる かつ 非表示対象役職でない場合のみリスト表示 */}
                            {safeTeammates.length > 0 && !hiddenTeammateRoles.includes(safeRole)
                              ? safeTeammates.map(t => {
@@ -81,7 +81,7 @@ export const MiniRoleCard = ({ role, teammates, originalRole }) => {
           {/* マスク時（非表示時）のオーバーレイ */}
           {/* 長押し誘導メッセージ */}
           {!revealed && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 pointer-events-none p-4">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300 z-10 pointer-events-none p-4">
                   <EyeOff size={24} md:size={28} className="mb-2 opacity-80"/>
                   <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase leading-tight mt-2">長押しして自分の役職と仲間を確認</span>
               </div>

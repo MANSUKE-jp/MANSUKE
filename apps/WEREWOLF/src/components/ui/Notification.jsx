@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { X, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 
 // 通知トーストコンポーネント
 // 画面右上に一時的にメッセージを表示する
 // 自動消去機能あり
 export const Notification = ({ message, type = 'info', duration = 3000, onClose }) => {
-    // 表示状態（マウント時はtrue）
-    const [isVisible, setIsVisible] = useState(true);
     // 退場アニメーション制御用フラグ
     const [isRemoving, setIsRemoving] = useState(false);
+
+    // 閉じる処理
+    // 即座に消去せず、退場アニメーションの完了を待ってからコールバックを呼ぶ
+    const handleClose = useCallback(() => {
+        setIsRemoving(true);
+        // CSS transitionのduration-300に合わせて300ms待機
+        setTimeout(() => {
+            if (onClose) onClose();
+        }, 300);
+    }, [onClose]);
 
     // 自動消去タイマー設定
     // durationが指定されている場合、指定時間後に閉じる処理を実行
@@ -20,23 +28,13 @@ export const Notification = ({ message, type = 'info', duration = 3000, onClose 
             // クリーンアップでタイマー解除
             return () => clearTimeout(timer);
         }
-    }, [duration]);
-
-    // 閉じる処理
-    // 即座に消去せず、退場アニメーションの完了を待ってからコールバックを呼ぶ
-    const handleClose = () => {
-        setIsRemoving(true);
-        // CSS transitionのduration-300に合わせて300ms待機
-        setTimeout(() => {
-            if (onClose) onClose();
-        }, 300);
-    };
+    }, [duration, handleClose]);
 
     // 通知タイプに応じたスタイルとアイコン定義
     // デフォルト: info (青/グレー系)
     let Icon = Info;
-    let containerClass = "bg-gray-800/90 border-gray-600/50 text-blue-100";
-    let iconColor = "text-blue-400";
+    let containerClass = "bg-gray-950/90 border-gray-600/50 text-gray-100";
+    let iconColor = "text-red-400";
 
     switch (type) {
         case 'success':
@@ -85,7 +83,7 @@ export const Notification = ({ message, type = 'info', duration = 3000, onClose 
                 {/* 手動クローズボタン */}
                 <button 
                     onClick={handleClose} 
-                    className="text-white/50 hover:text-white transition shrink-0 p-0.5 hover:bg-white/10 rounded"
+                    className="text-gray-200/50 hover:text-gray-200 transition shrink-0 p-0.5 hover:bg-gray-800/10 rounded"
                 >
                     <X size={16} />
                 </button>

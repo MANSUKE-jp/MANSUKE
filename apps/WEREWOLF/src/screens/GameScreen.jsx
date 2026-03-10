@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase.js';
 import { ROLE_DEFINITIONS, TIME_LIMITS } from '../constants/gameData.js';
@@ -27,14 +27,13 @@ import LoadingScreen from '../components/ui/LoadingScreen.jsx';
 
 // コンポーネント: メインゲーム画面コンポーネント
 // App.jsx から引き継いだ基本情報を props で受け取る
-export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlayer, setView }) => {
+export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlayer, setView, setRoomCode, maintenanceMode, setNotification }) => {
     // ステート: プレイヤー自身の情報
     // myRole/originalRole: Firestoreのsecretサブコレクションから取得
     // mySecret: 役職データ全体（仲間の情報など含む）
     const [myRole, setMyRole] = useState(null);
     const [originalRole, setOriginalRole] = useState(null);
     const [teammates, setTeammates] = useState([]);
-    const [mySecret, setMySecret] = useState(null);
 
     // ステート: チャット・ログデータ
     // Firestoreのリスナー経由でリアルタイム更新
@@ -144,14 +143,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
         return roles;
     }, [isDead, deadPlayersInfo]);
 
-    const visibleLogsForAi = useMemo(() => {
-        if (!logs) return [];
-        return logs.filter(l => {
-            if (!l.secret) return true;
-            if (l.visibleTo && Array.isArray(l.visibleTo) && l.visibleTo.includes(user?.uid)) return true;
-            return false;
-        });
-    }, [logs, user?.uid]);
+
 
     // Effect: 通知イベント監視
     useEffect(() => {
@@ -160,7 +152,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
             // タイムスタンプとメッセージでユニーク判定し、重複表示を防ぐ
             const key = `${evt.timestamp?.seconds}_${evt.message}`;
             if (evt.message && lastNotificationRef.current !== key) {
-                showNotify(evt.message, "info", 4000);
+                setTimeout(() => showNotify(evt.message, "info", 4000), 0);
                 lastNotificationRef.current = key;
             }
         }
@@ -189,7 +181,6 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
             ur = onSnapshot(doc(db, 'artifacts', 'mansuke-jinro', 'public', 'data', 'rooms', roomCode, 'players', user.uid, 'secret', 'roleData'), s => {
                 if (s.exists()) {
                     const d = s.data();
-                    setMySecret(d);
                     setMyRole(d.role);
                     setOriginalRole(d.originalRole);
                     const rawTeammates = d.teammates || [];
@@ -226,7 +217,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
     useEffect(() => {
         if (!roomCode || !user || isGameEnded) return;
         if (!isDead && !isSpectator) {
-            setGraveMessages([]);
+            setTimeout(() => setGraveMessages([]), 0);
             return;
         }
 
@@ -249,7 +240,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                     if (res.data && res.data.players) {
                         setDeadPlayersInfo(res.data.players);
                     }
-                } catch (e) { /* silent */ }
+                } catch { /* silent */ }
             };
             fetchAllRoles();
         }
@@ -276,7 +267,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                 // silent
             });
             return () => unsub();
-        } else { setTeamMessages([]); }
+        } else { setTimeout(() => setTeamMessages([]), 0); }
     }, [user, myRole, roomCode, isGameEnded]);
 
     // Effect: チームチャット未読件数カウント
@@ -300,7 +291,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
     // Effect: タブ切り替え時の未読リセット
     useEffect(() => {
         if (rightPanelTab === 'chat') {
-            setUnreadTeam(0);
+            setTimeout(() => setUnreadTeam(0), 0);
         }
     }, [rightPanelTab]);
 
@@ -322,13 +313,13 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                                 <Skull size={64} className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
                             </div>
                             <div className="text-center space-y-4 relative z-10">
-                                <h3 className="text-4xl font-black text-white tracking-widest drop-shadow-md">YOU DIED</h3>
+                                <h3 className="text-4xl font-black text-gray-200 tracking-widest drop-shadow-md">YOU DIED</h3>
                                 <div className="py-3 px-6 bg-black/60 rounded-xl border border-red-500/50 backdrop-blur-sm">
                                     <span className="text-sm text-red-300 font-bold uppercase tracking-wider block mb-1">CAUSE OF DEATH</span>
-                                    <p className="text-2xl font-black text-white">投票による処刑</p>
+                                    <p className="text-2xl font-black text-gray-200">投票による処刑</p>
                                 </div>
                                 <div className="inline-block mt-2">
-                                    <p className="text-white font-bold bg-gradient-to-r from-red-900 to-black px-6 py-2 rounded-full border border-red-500/30 shadow-lg text-sm">
+                                    <p className="text-gray-200 font-bold bg-gradient-to-r from-red-900 to-black px-6 py-2 rounded-full border border-red-500/30 shadow-lg text-sm">
                                         霊界で試合の様子を見守りましょう！
                                     </p>
                                 </div>
@@ -357,115 +348,147 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
     // Effect: フェーズ変更検知と演出オーバーレイ
     useEffect(() => {
         if (!room || isGameEnded) return;
-        if (room.logs) setLogs(room.logs || []);
+        if (room.logs) setTimeout(() => setLogs(room.logs || []), 0);
 
         if (roomPhase && roomPhase !== lastPhaseRef.current) {
-            setOptimisticPhase(null); // 楽観的フェーズクリア
             const prevPhase = lastPhaseRef.current;
             lastPhaseRef.current = roomPhase;
 
-            // フェーズ変更に伴う状態リセット
-            setNightActionDone(false);
-            setHasVoted(false);
-            setVoteSelection(null);
-            setLastActionResult(null);
-            setHasShownWaitMessage(false);
-            setIsReadyProcessing(false);
-            setIsVotingSubmitting(false);
+            setTimeout(() => {
+                setOptimisticPhase(null); // 楽観的フェーズクリア
+                // フェーズ変更に伴う状態リセット
+                setNightActionDone(false);
+                setHasVoted(false);
+                setVoteSelection(null);
+                setLastActionResult(null);
+                setHasShownWaitMessage(false);
+                setIsReadyProcessing(false);
+                setIsVotingSubmitting(false);
 
-            // 朝の発表フェーズ（死亡・覚醒）
-            if (roomPhase.startsWith('announcement_')) {
-                const isMyDeath = myPlayer?.status === 'dead' && (myPlayer?.diedDay === roomDay - 1 || myPlayer?.diedDay === roomDay);
-                const isExecution = myPlayer?.deathReason === '投票による処刑';
+                // 朝の発表フェーズ（死亡・覚醒）
+                if (roomPhase.startsWith('announcement_')) {
+                    const isMyDeath = myPlayer?.status === 'dead' && (myPlayer?.diedDay === roomDay - 1 || myPlayer?.diedDay === roomDay);
+                    const isExecution = myPlayer?.deathReason === '投票による処刑';
 
-                let myDeathContent = null;
-                if (isMyDeath && !isExecution) {
-                    const reason = myPlayer?.deathReason || "不明";
-                    myDeathContent = (
-                        <div className="mt-6 flex flex-col items-center animate-fade-in-up w-full px-4">
-                            <div className="bg-red-950/90 border-4 border-red-600 p-8 rounded-3xl flex flex-col items-center gap-6 shadow-[0_0_50px_rgba(220,38,38,0.5)] max-w-lg w-full relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-sm font-bold py-1 px-4 text-center">
-                                    {room.deathResult}
-                                </div>
-                                <div className="bg-black/50 p-6 rounded-full border-2 border-red-500 shadow-xl relative z-10 mt-4">
-                                    <Skull size={64} className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
-                                </div>
-                                <div className="text-center space-y-4 relative z-10">
-                                    <h3 className="text-4xl font-black text-white tracking-widest drop-shadow-md">YOU DIED</h3>
-                                    <div className="py-3 px-6 bg-black/60 rounded-xl border border-red-500/50 backdrop-blur-sm">
-                                        <span className="text-sm text-red-300 font-bold uppercase tracking-wider block mb-1">CAUSE OF DEATH</span>
-                                        <p className="text-2xl font-black text-white">{reason}</p>
+                    let myDeathContent = null;
+                    if (isMyDeath && !isExecution) {
+                        const reason = myPlayer?.deathReason || "不明";
+                        myDeathContent = (
+                            <div className="mt-6 flex flex-col items-center animate-fade-in-up w-full px-4">
+                                <div className="bg-red-950/90 border-4 border-red-600 p-8 rounded-3xl flex flex-col items-center gap-6 shadow-[0_0_50px_rgba(220,38,38,0.5)] max-w-lg w-full relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-full bg-red-600 text-white text-sm font-bold py-1 px-4 text-center">
+                                        {room.deathResult}
                                     </div>
-                                    <div className="inline-block mt-2">
-                                        <p className="text-white font-bold bg-gradient-to-r from-red-900 to-black px-6 py-2 rounded-full border border-red-500/30 shadow-lg text-sm">
-                                            霊界で試合の様子を見守りましょう！
-                                        </p>
+                                    <div className="bg-black/50 p-6 rounded-full border-2 border-red-500 shadow-xl relative z-10 mt-4">
+                                        <Skull size={64} className="text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                                    </div>
+                                    <div className="text-center space-y-4 relative z-10">
+                                        <h3 className="text-4xl font-black text-gray-200 tracking-widest drop-shadow-md">YOU DIED</h3>
+                                        <div className="py-3 px-6 bg-black/60 rounded-xl border border-red-500/50 backdrop-blur-sm">
+                                            <span className="text-sm text-red-300 font-bold uppercase tracking-wider block mb-1">CAUSE OF DEATH</span>
+                                            <p className="text-2xl font-black text-gray-200">{reason}</p>
+                                        </div>
+                                        <div className="inline-block mt-2">
+                                            <p className="text-gray-200 font-bold bg-gradient-to-r from-red-900 to-black px-6 py-2 rounded-full border border-red-500/30 shadow-lg text-sm">
+                                                霊界で試合の様子を見守りましょう！
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                }
+                        );
+                    }
 
-                let awakeningContent = null;
-                if (room.awakeningEvents && room.awakeningEvents.length > 0) {
-                    const isWolfTeam = ['werewolf', 'greatwolf', 'wise_wolf', 'madman'].includes(myRole);
-                    const myAwakening = room.awakeningEvents.find(e => e.playerId === user.uid);
+                    let awakeningContent = null;
+                    if (room.awakeningEvents && room.awakeningEvents.length > 0) {
+                        const isWolfTeam = ['werewolf', 'greatwolf', 'wise_wolf', 'madman'].includes(myRole);
+                        const myAwakening = room.awakeningEvents.find(e => e.playerId === user.uid);
 
-                    if (isWolfTeam || myAwakening) {
-                        const eventsToShow = room.awakeningEvents.filter(e => isWolfTeam || e.playerId === user.uid);
-                        if (eventsToShow.length > 0) {
-                            awakeningContent = (
-                                <div className="mt-6 flex flex-col gap-3 items-center animate-fade-in-up">
-                                    {eventsToShow.map((e, idx) => {
-                                        const pName = players.find(p => p.id === e.playerId)?.name || "誰か";
-                                        return (
-                                            <div key={idx} className="bg-gray-900 border-2 border-red-500 p-4 rounded-2xl flex items-center gap-4 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-                                                <div className="bg-red-500/20 p-3 rounded-full"><Users size={32} className="text-red-400" /></div>
-                                                <div className="text-left">
-                                                    <div className="text-xs text-red-400 font-black uppercase tracking-wider mb-1">AWAKENING</div>
-                                                    <div className="text-lg font-bold text-white">
-                                                        <span className="text-red-400 text-xl mr-1">{pName}</span> が新しく<br />人狼になりました
+                        if (isWolfTeam || myAwakening) {
+                            const eventsToShow = room.awakeningEvents.filter(e => isWolfTeam || e.playerId === user.uid);
+                            if (eventsToShow.length > 0) {
+                                awakeningContent = (
+                                    <div className="mt-6 flex flex-col gap-3 items-center animate-fade-in-up">
+                                        {eventsToShow.map((e, idx) => {
+                                            const pName = players.find(p => p.id === e.playerId)?.name || "誰か";
+                                            return (
+                                                <div key={idx} className="bg-gray-800/80 border-2 border-red-500 p-4 rounded-2xl flex items-center gap-4 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                                    <div className="bg-red-900/20 p-3 rounded-full"><Users size={32} className="text-red-400" /></div>
+                                                    <div className="text-left">
+                                                        <div className="text-xs text-red-400 font-black uppercase tracking-wider mb-1">AWAKENING</div>
+                                                        <div className="text-lg font-bold text-gray-200">
+                                                            <span className="text-red-400 text-xl mr-1">{pName}</span> が新しく<br />人狼になりました
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            );
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            }
+                        }
+                    }
+
+                    setOverlay({
+                        title: (isMyDeath && !isExecution) ? "" : `${roomDay}日目の朝`,
+                        subtitle: (
+                            <div className="flex flex-col items-center gap-4 w-full">
+                                {!(isMyDeath && !isExecution) && (
+                                    <p className="text-lg">{room.deathResult || "昨晩は誰も死亡しませんでした..."}</p>
+                                )}
+                                {myDeathContent}
+                                {awakeningContent}
+                            </div>
+                        ),
+                        duration: (awakeningContent || myDeathContent) ? 10000 : 8000,
+                        isNight: false,
+                        onComplete: () => setOverlay(null)
+                    });
+
+                } else if (roomPhase.startsWith('night_')) {
+                    if (prevPhase === 'voting') {
+                        setShowVoteResult(true);
+                    } else {
+                        if (room.executionResult) {
+                            setOverlay({ title: "夜になりました", subtitle: room.executionResult, duration: 4000, isNight: true, onComplete: () => { setOverlay({ title: "夜になりました", subtitle: "能力者は行動してください", duration: 4000, isNight: true, onComplete: () => setOverlay(null) }); } });
+                        } else {
+                            setOverlay({ title: "夜になりました", subtitle: "能力者は行動してください", duration: 4000, isNight: true, onComplete: () => setOverlay(null) });
                         }
                     }
                 }
-
-                setOverlay({
-                    title: (isMyDeath && !isExecution) ? "" : `${roomDay}日目の朝`,
-                    subtitle: (
-                        <div className="flex flex-col items-center gap-4 w-full">
-                            {!(isMyDeath && !isExecution) && (
-                                <p className="text-lg">{room.deathResult || "昨晩は誰も死亡しませんでした..."}</p>
-                            )}
-                            {myDeathContent}
-                            {awakeningContent}
-                        </div>
-                    ),
-                    duration: (awakeningContent || myDeathContent) ? 10000 : 8000,
-                    isNight: false,
-                    onComplete: () => setOverlay(null)
-                });
-
-            } else if (roomPhase.startsWith('night_')) {
-                if (prevPhase === 'voting') {
-                    setShowVoteResult(true);
-                } else {
-                    if (room.executionResult) {
-                        setOverlay({ title: "夜になりました", subtitle: room.executionResult, duration: 4000, isNight: true, onComplete: () => { setOverlay({ title: "夜になりました", subtitle: "能力者は行動してください", duration: 4000, isNight: true, onComplete: () => setOverlay(null) }); } });
-                    } else {
-                        setOverlay({ title: "夜になりました", subtitle: "能力者は行動してください", duration: 4000, isNight: true, onComplete: () => setOverlay(null) });
-                    }
-                }
-            }
+            }, 0);
         }
     }, [room, roomPhase, roomDay, isGameEnded, myPlayer, myRole, user.uid, players]);
+
+    // 関数: フェーズ進行リクエスト (Cloud Functions)
+    const executeForceAdvance = useCallback(() => {
+        if (processingRef.current || isGameEnded) return;
+        const isHost = roomHostId === user?.uid;
+        const delay = isHost ? 0 : 2000 + Math.random() * 3000;
+
+        setTimeout(() => {
+            if (processingRef.current) return;
+            processingRef.current = true;
+            const fn = httpsCallable(functions, 'advancePhase');
+            fn({ roomCode })
+                .then(() => {
+                    // 成功時はリトライカウントをリセット
+                    advanceRetryCount.current = 0;
+                })
+                .catch(() => {
+                    advanceRetryCount.current += 1;
+                    // エラーが連続する場合はユーザーに通知してループを緩和
+                    if (advanceRetryCount.current > 3) {
+                        showNotify("進行処理でエラーが発生しています。しばらくお待ちください。", "warning");
+                    }
+                })
+                .finally(() => {
+                    // エラー回数に応じて次のリクエストまでの待機時間を延ばす（バックオフ）
+                    const cooldown = 2000 + (advanceRetryCount.current * 1000);
+                    setTimeout(() => processingRef.current = false, cooldown);
+                });
+        }, delay);
+    }, [isGameEnded, roomHostId, user.uid, roomCode]);
 
     // Effect: クライアント側タイマー制御
     useEffect(() => {
@@ -501,7 +524,9 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                 else if (roomPhase === 'role_reveal' && !optimisticPhase) { setOptimisticPhase('day_1'); executeForceAdvance(); }
 
                 if (!hasShownWaitMessage && roomPhase !== 'countdown' && roomPhase !== 'role_reveal') {
-                    if (roomPhase.startsWith('night') && roomNightAllDoneTime) { } else { setHasShownWaitMessage(true); }
+                    if (!(roomPhase.startsWith('night') && roomNightAllDoneTime)) {
+                        setHasShownWaitMessage(true);
+                    }
                 }
 
                 if (!processingRef.current) {
@@ -517,37 +542,8 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
             }
         }, 250);
         return () => clearInterval(timer);
-    }, [roomStatus, roomPhase, roomPhaseStartTime, roomNightAllDoneTime, hasShownWaitMessage, optimisticPhase, discussionTime]);
+    }, [roomStatus, roomPhase, roomPhaseStartTime, roomNightAllDoneTime, hasShownWaitMessage, optimisticPhase, discussionTime, executeForceAdvance]);
 
-    // 関数: フェーズ進行リクエスト (Cloud Functions)
-    const executeForceAdvance = () => {
-        if (processingRef.current || isGameEnded) return;
-        const isHost = roomHostId === user.uid;
-        const delay = isHost ? 0 : 2000 + Math.random() * 3000;
-
-        setTimeout(() => {
-            if (processingRef.current) return;
-            processingRef.current = true;
-            const fn = httpsCallable(functions, 'advancePhase');
-            fn({ roomCode })
-                .then(() => {
-                    // 成功時はリトライカウントをリセット
-                    advanceRetryCount.current = 0;
-                })
-                .catch(e => {
-                    advanceRetryCount.current += 1;
-                    // エラーが連続する場合はユーザーに通知してループを緩和
-                    if (advanceRetryCount.current > 3) {
-                        showNotify("進行処理でエラーが発生しています。しばらくお待ちください。", "warning");
-                    }
-                })
-                .finally(() => {
-                    // エラー回数に応じて次のリクエストまでの待機時間を延ばす（バックオフ）
-                    const cooldown = 2000 + (advanceRetryCount.current * 1000);
-                    setTimeout(() => processingRef.current = false, cooldown);
-                });
-        }, delay);
-    };
 
     // 関数: 投票準備完了 (toggleReady)
     const handleVoteReady = async () => {
@@ -557,7 +553,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
             const fn = httpsCallable(functions, 'toggleReady');
             await fn({ roomCode, isReady: true });
             showNotify("準備完了を送信しました", "success");
-        } catch (e) {
+        } catch {
             setIsReadyProcessing(false);
             showNotify("通信エラー: もう一度お試しください", "error");
         }
@@ -595,7 +591,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
             const fn = httpsCallable(functions, 'submitVote');
             await fn({ roomCode, targetId: voteSelection });
             setHasVoted(true);
-        } catch (e) {
+        } catch {
             setIsVotingSubmitting(false);
             showNotify("投票に失敗しました。再試行してください。", "error");
         }
@@ -622,7 +618,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                     const fn = httpsCallable(functions, 'abortGame');
                     await fn({ roomCode });
                     showNotify("強制終了しました", "success");
-                } catch (e) {
+                } catch {
                     showNotify("強制終了失敗", "error");
                 }
             },
@@ -679,7 +675,6 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
     const isSpecialRole = ['werewolf', 'greatwolf', 'wise_wolf', 'seer', 'sage', 'knight', 'trapper', 'detective', 'medium', 'assassin'].includes(myRole);
 
     const showActionPanel = !isDead && isSpecialRole;
-    const showGeminiPanel = !isDead && !isSpecialRole;
 
     const teamChatTitle = ['werewolf', 'greatwolf', 'wise_wolf'].includes(myRole) ? "人狼チャット" : `${ROLE_DEFINITIONS[myRole || 'citizen']?.name || myRole}チャット`;
     const canSeeTeamChat = !isDead && ['werewolf', 'greatwolf', 'wise_wolf', 'seer', 'medium', 'knight', 'trapper', 'sage', 'detective', 'assassin'].includes(myRole);
@@ -693,16 +688,6 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
     }
 
     const safeMyPlayer = myPlayer || { status: 'alive', name: '観戦者', isReady: false };
-
-    const gameContext = {
-        myRole,
-        logs: visibleLogsForAi,
-        chatHistory: messages,
-        roleSettings: room?.roleSettings,
-        teammates: teammates,
-        lastActionResult: lastActionResult,
-        players: players
-    };
 
     return (
         <div className="lg:h-screen min-h-screen flex flex-col bg-gray-950 text-gray-100 font-sans lg:overflow-y-auto">
@@ -719,10 +704,10 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                 <InfoModal title="プレイヤー追放" onClose={() => setShowKickModal(false)}>
                     <div className="space-y-2">
                         {players.filter(p => p.status === 'alive' || (p.isSpectator && p.status !== 'vanished')).map(p => (
-                            <div key={p.id} className="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
-                                <span>{p.name} {p.isSpectator && <span className="text-xs text-gray-500">(観戦者)</span>}</span>
+                            <div key={p.id} className="flex justify-between items-center bg-gray-950 p-3 rounded-lg">
+                                <span>{p.name} {p.isSpectator && <span className="text-xs text-gray-300">(観戦者)</span>}</span>
                                 {p.id !== user.uid && (
-                                    <button onClick={() => confirmKickPlayer(p.id)} className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1">
+                                    <button onClick={() => confirmKickPlayer(p.id)} className="bg-red-600 hover:bg-red-900/20 text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1">
                                         <UserMinus size={12} /> 追放
                                     </button>
                                 )}
@@ -734,16 +719,16 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
 
             {isVoting && safeMyPlayer.status === 'alive' && !hasVoted && (
                 <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-                    <div className="bg-gray-900 border-2 border-red-600 rounded-3xl p-8 max-w-lg w-full text-center space-y-6 shadow-2xl animate-fade-in-up flex flex-col max-h-[85vh]">
+                    <div className="bg-gray-800/80 border-2 border-red-600 rounded-3xl p-8 max-w-lg w-full text-center space-y-6 shadow-2xl animate-fade-in-up flex flex-col max-h-[85vh]">
                         <div className="flex flex-col items-center justify-center gap-2 text-red-500 mb-2 shrink-0">
                             <Gavel size={48} className="text-red-500" />
                             <h2 className="text-4xl font-black tracking-widest">VOTE</h2>
                         </div>
                         <p className="text-gray-300 mb-4 shrink-0 font-bold">{timeLeft > 0 ? "本日の処刑者を選んでください" : "投票を締め切りました"}<br /><span className="text-sm text-red-400">残り {timeLeft}秒</span></p>
                         <div className="grid grid-cols-2 gap-3 overflow-y-auto p-2 custom-scrollbar flex-1">
-                            <button onClick={() => setVoteSelection('skip')} disabled={timeLeft <= 0} className={`py-4 px-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${voteSelection === 'skip' ? "bg-gray-600 border-white ring-2 ring-white text-white shadow-xl scale-105" : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700"} disabled:opacity-50 disabled:cursor-not-allowed`}>スキップ</button>
+                            <button onClick={() => setVoteSelection('skip')} disabled={timeLeft <= 0} className={`py-4 px-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${voteSelection === 'skip' ? "bg-gray-700 border-white ring-2 ring-white text-gray-200 shadow-xl scale-105" : "bg-gray-950 border-gray-700 text-gray-300 hover:bg-gray-800"} disabled:opacity-50 disabled:cursor-not-allowed`}>スキップ</button>
                             {players.filter(p => p.status === 'alive' && p.id !== user.uid).map(p => (
-                                <button key={p.id} onClick={() => setVoteSelection(p.id)} disabled={timeLeft <= 0} className={`py-4 px-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${voteSelection === p.id ? "bg-red-600 border-red-400 ring-2 ring-red-400 text-white shadow-xl scale-105" : "bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700"} disabled:opacity-50 disabled:cursor-not-allowed`}>{p.name}</button>
+                                <button key={p.id} onClick={() => setVoteSelection(p.id)} disabled={timeLeft <= 0} className={`py-4 px-3 rounded-xl border-2 font-bold transition flex items-center justify-center ${voteSelection === p.id ? "bg-red-600 border-red-400 ring-2 ring-red-400 text-gray-200 shadow-xl scale-105" : "bg-gray-950 border-gray-700 text-gray-300 hover:bg-gray-800"} disabled:opacity-50 disabled:cursor-not-allowed`}>{p.name}</button>
                             ))}
                         </div>
                         <button
@@ -761,24 +746,24 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                 </div>
             )}
 
-            {isVoting && hasVoted && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"><div className="text-center"><CheckCircle size={64} className="text-green-500 mx-auto mb-4" /><h2 className="text-3xl font-bold text-white mb-2">投票完了</h2><p className="text-gray-400">結果発表を待っています...</p></div></div>}
-            {isVoting && isDead && <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50 text-center pointer-events-none w-full"><Gavel size={48} className="text-gray-500 mx-auto mb-2" /><h2 className="text-xl font-bold text-gray-300">現在生存者は投票を行っています...</h2></div>}
+            {isVoting && hasVoted && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"><div className="text-center"><CheckCircle size={64} className="text-green-500 mx-auto mb-4" /><h2 className="text-3xl font-bold text-gray-200 mb-2">投票完了</h2><p className="text-gray-300">結果発表を待っています...</p></div></div>}
+            {isVoting && isDead && <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-50 text-center pointer-events-none w-full"><Gavel size={48} className="text-gray-300 mx-auto mb-2" /><h2 className="text-xl font-bold text-gray-300">現在生存者は投票を行っています...</h2></div>}
 
-            <header className="flex-none flex items-center justify-between p-3 border-b border-gray-800 bg-gray-950/80 backdrop-blur z-40">
+            <header className="flex-none flex items-center justify-between p-3 border-b border-gray-700 bg-gray-950/80 backdrop-blur z-40">
                 <div className="flex items-center gap-4">
-                    <div className={`px-4 py-2 rounded-xl border font-bold flex items-center gap-2 ${displayPhase?.startsWith('night') ? "bg-purple-900/50 border-purple-500 text-purple-200" : "bg-gray-800 border-gray-700"}`}>
+                    <div className={`px-4 py-2 rounded-xl border font-bold flex items-center gap-2 ${displayPhase?.startsWith('night') ? "bg-purple-900/50 border-purple-500 text-purple-200" : "bg-gray-950 border-gray-700"}`}>
                         {displayPhase?.startsWith('night') ? <Moon size={18} /> : <Sun size={18} className="text-yellow-400" />}<span>{formatPhaseName(displayPhase, displayDay)}</span>
                     </div>
-                    <div className={`px-4 py-2 rounded-xl border font-mono font-bold text-xl flex items-center gap-2 ${timeLeft < 10 && !isNight ? "bg-red-900/50 border-red-500 text-red-400" : "bg-gray-800 border-gray-700 text-white"}`}>
+                    <div className={`px-4 py-2 rounded-xl border font-mono font-bold text-xl flex items-center gap-2 ${timeLeft < 10 && !isNight ? "bg-red-900/50 border-red-500 text-red-400" : "bg-gray-950 border-gray-700 text-gray-100"}`}>
                         <Clock size={18} /><span>{isNight ? (roomNightAllDoneTime ? timeLeft : "∞") : timeLeft}<span className="text-sm ml-0.5">s</span></span>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="text-xs text-gray-600 font-bold hidden md:block">ROOM: {roomCode}</div>
+                    <div className="text-xs text-gray-300 font-bold hidden md:block">ROOM: {roomCode}</div>
                     {hasControl && (
                         <div className="flex gap-2">
                             <button onClick={confirmForceAbort} className="bg-red-900/80 text-white border border-red-500 px-3 py-2 rounded-lg text-xs font-bold hover:bg-red-700 transition flex items-center gap-2 shadow-lg"><LogOut size={14} /> 強制終了</button>
-                            <button onClick={() => setShowKickModal(true)} className="bg-gray-800 text-gray-300 border border-gray-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition flex items-center gap-2"><UserMinus size={14} /> 追放</button>
+                            <button onClick={() => setShowKickModal(true)} className="bg-gray-950 text-gray-300 border border-gray-600 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition flex items-center gap-2"><UserMinus size={14} /> 追放</button>
                         </div>
                     )}
                 </div>
@@ -791,20 +776,20 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
 
                     {!isDead && !isSpectator && (
                         <div className="flex-col gap-2 shrink-0 hidden lg:flex">
-                            <button onClick={() => setShowRoleDist(true)} className="w-full p-4 bg-gray-800 rounded-xl border border-gray-700 hover:bg-gray-700 transition flex items-center justify-center gap-2 font-bold"><Settings className="text-blue-400" size={18} /> 役職配分を確認</button>
-                            <button onClick={() => setShowSurvivors(true)} className="w-full p-4 bg-gray-800 rounded-xl border border-gray-700 hover:bg-gray-700 transition flex items-center justify-center gap-2 font-bold"><Users className="text-green-400" size={18} /> 生存者を確認</button>
+                            <button onClick={() => setShowRoleDist(true)} className="w-full p-4 bg-gray-950 rounded-xl border border-gray-700 hover:bg-gray-800 transition flex items-center justify-center gap-2 font-bold"><Settings className="text-red-400" size={18} /> 役職配分を確認</button>
+                            <button onClick={() => setShowSurvivors(true)} className="w-full p-4 bg-gray-950 rounded-xl border border-gray-700 hover:bg-gray-800 transition flex items-center justify-center gap-2 font-bold"><Users className="text-green-400" size={18} /> 生存者を確認</button>
                         </div>
                     )}
 
                     {!isDead && !isSpectator && (
                         <div className="bg-black/20 p-3 rounded-xl overflow-y-auto custom-scrollbar border border-white/5 lg:flex-1 h-32 lg:h-auto min-h-0">
-                            <p className="text-xs text-gray-500 font-bold mb-2 flex items-center gap-1 sticky top-0 bg-black/20 p-1 backdrop-blur"><History size={12} /> チャットアーカイブ</p>
-                            <div className="flex flex-wrap gap-2">{archiveButtons.map((btn, i) => (<button key={i} onClick={() => handleOpenArchive(btn.day, btn.phase)} className="bg-gray-800 border border-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-700 transition">{btn.label}</button>))}</div>
+                            <p className="text-xs text-gray-300 font-bold mb-2 flex items-center gap-1 sticky top-0 bg-black/20 p-1 backdrop-blur"><History size={12} /> チャットアーカイブ</p>
+                            <div className="flex flex-wrap gap-2">{archiveButtons.map((btn, i) => (<button key={i} onClick={() => handleOpenArchive(btn.day, btn.phase)} className="bg-gray-950 border border-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs font-bold hover:bg-gray-800 transition">{btn.label}</button>))}</div>
                         </div>
                     )}
 
                     {isDay && !isDead && !isSpectator && (
-                        <button onClick={handleVoteReady} disabled={safeMyPlayer.isReady || isReadyProcessing} className={`mt-auto w-full py-4 rounded-xl font-bold transition flex items-center justify-center gap-2 shrink-0 ${safeMyPlayer.isReady || isReadyProcessing ? "bg-gray-700 text-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/20"}`}><ThumbsUp size={24} /> {safeMyPlayer.isReady ? "投票準備完了済み" : isReadyProcessing ? "送信中..." : "投票準備を完了する"}</button>
+                        <button onClick={handleVoteReady} disabled={safeMyPlayer.isReady || isReadyProcessing} className={`mt-auto w-full py-4 rounded-xl font-bold transition flex items-center justify-center gap-2 shrink-0 ${safeMyPlayer.isReady || isReadyProcessing ? "bg-gray-800 text-gray-300 cursor-not-allowed" : "bg-green-600 hover:bg-green-900/200 text-gray-100 shadow-lg shadow-green-900/20"}`}><ThumbsUp size={24} /> {safeMyPlayer.isReady ? "投票準備完了済み" : isReadyProcessing ? "送信中..." : "投票準備を完了する"}</button>
                     )}
                 </div>
 
@@ -826,7 +811,7 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
 
                             {!inPersonMode && (
                                 <div className="h-1/3 border border-gray-700 rounded-2xl overflow-hidden relative shrink-0 flex flex-col">
-                                    <div className="absolute top-0 right-0 bg-gray-800/80 px-3 py-1 text-sm font-bold text-gray-300 z-10 border-bl rounded-bl-xl shadow-md flex items-center gap-2"><Eye size={14} className="text-blue-400" /> 生存者チャット (閲覧のみ)</div>
+                                    <div className="absolute top-0 right-0 bg-gray-950/80 px-3 py-1 text-sm font-bold text-gray-300 z-10 border-bl rounded-bl-xl shadow-md flex items-center gap-2"><Eye size={14} className="text-red-400" /> 生存者チャット (閲覧のみ)</div>
                                     <div className="h-full overflow-hidden opacity-80 hover:opacity-100 transition flex flex-col">
                                         <ChatPanel
                                             messages={messages}
@@ -845,21 +830,21 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                     ) : isNight ? (
                         <>
                             {showActionPanel ? (
-                                <div className="h-full bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-purple-500/30 overflow-hidden">
+                                <div className="h-full bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-purple-500/30 overflow-hidden">
                                     <NightActionPanel myRole={myRole} players={players} onActionComplete={() => setNightActionDone(true)} myPlayer={safeMyPlayer} teammates={teammates || []} roomCode={roomCode} roomData={room} lastActionResult={lastActionResult} isDone={nightActionDone} />
                                 </div>
                             ) : (
-                                <div className="h-full flex items-center justify-center text-gray-500 bg-gray-900/30 rounded-2xl border border-gray-800">
-                                    <p className="font-bold text-gray-400">朝が明けるのをお待ちください...</p>
+                                <div className="h-full flex items-center justify-center text-gray-300 bg-gray-800/30 rounded-2xl border border-gray-700">
+                                    <p className="font-bold text-gray-300">朝が明けるのをお待ちください...</p>
                                 </div>
                             )}
                         </>
                     ) : (
                         inPersonMode ? (
-                            <div className="h-full min-h-0 bg-gray-900/40 backdrop-blur rounded-2xl border border-blue-500/20 p-4 flex flex-col justify-center items-center text-center">
-                                <Mic size={48} className="text-blue-500 mb-4 animate-pulse" />
-                                <h3 className="text-xl font-bold text-white mb-2">対面モード</h3>
-                                <p className="text-gray-400 text-sm">口頭で議論を行ってください。<br />チャットは無効化されています。</p>
+                            <div className="h-full min-h-0 bg-gray-800/40 backdrop-blur rounded-2xl border border-red-500/20 p-4 flex flex-col justify-center items-center text-center">
+                                <Mic size={48} className="text-red-400 mb-4 animate-pulse" />
+                                <h3 className="text-xl font-bold text-gray-200 mb-2">対面モード</h3>
+                                <p className="text-gray-300 text-sm">口頭で議論を行ってください。<br />チャットは無効化されています。</p>
                             </div>
                         ) : (
                             <div className="h-full min-h-0"><ChatPanel messages={messages || []} user={user} teammates={teammates || []} myPlayer={safeMyPlayer} onSendMessage={handleSendChat} title="生存者チャット" currentDay={displayDay} currentPhase={displayPhase} /></div>
@@ -870,30 +855,30 @@ export const GameScreen = ({ user, mansukeUser, room, roomCode, players, myPlaye
                 <div className="lg:col-span-4 flex flex-col gap-4 lg:h-full h-[40vh] min-h-[300px]">
                     {!isDead && !isSpectator && (
                         <div className="flex gap-2 shrink-0 lg:hidden">
-                            <button onClick={() => setShowRoleDist(true)} className="flex-1 p-3 bg-gray-800 rounded-xl border border-gray-700 hover:bg-gray-700 transition flex items-center justify-center gap-2 font-bold text-sm"><Settings className="text-blue-400" size={16} /> 配分</button>
-                            <button onClick={() => setShowSurvivors(true)} className="flex-1 p-3 bg-gray-800 rounded-xl border border-gray-700 hover:bg-gray-700 transition flex items-center justify-center gap-2 font-bold text-sm"><Users className="text-green-400" size={16} /> 生存者</button>
+                            <button onClick={() => setShowRoleDist(true)} className="flex-1 p-3 bg-gray-950 rounded-xl border border-gray-700 hover:bg-gray-800 transition flex items-center justify-center gap-2 font-bold text-sm"><Settings className="text-red-400" size={16} /> 配分</button>
+                            <button onClick={() => setShowSurvivors(true)} className="flex-1 p-3 bg-gray-950 rounded-xl border border-gray-700 hover:bg-gray-800 transition flex items-center justify-center gap-2 font-bold text-sm"><Users className="text-green-400" size={16} /> 生存者</button>
                         </div>
                     )}
 
                     {isNight && canSeeTeamChat && !isSpectator ? (
                         <>
                             {showActionPanel ? (
-                                <div className="flex-1 min-h-0 flex flex-col bg-gray-900/60 backdrop-blur-xl rounded-2xl border border-gray-700 overflow-hidden shadow-lg">
+                                <div className="flex-1 min-h-0 flex flex-col bg-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-700 overflow-hidden shadow-lg">
                                     <div className="flex border-b border-gray-700">
                                         <button
                                             onClick={() => setRightPanelTab('chat')}
-                                            className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition relative ${rightPanelTab === 'chat' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-b-2 border-transparent'}`}
+                                            className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition relative ${rightPanelTab === 'chat' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/30' : 'bg-gray-950 text-gray-300 hover:bg-gray-800 border-b-2 border-transparent'}`}
                                         >
                                             <MessageSquare size={16} /> {teamChatTitle}
                                             {unreadTeam > 0 && (
-                                                <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center animate-bounce border-2 border-gray-900 shadow-sm z-10">
+                                                <span className="absolute top-1 right-1 bg-red-900/20 text-white text-[10px] min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center animate-bounce border-2 border-gray-900 shadow-sm z-10">
                                                     {unreadTeam > 99 ? '99+' : unreadTeam}
                                                 </span>
                                             )}
                                         </button>
                                         <button
                                             onClick={() => setRightPanelTab('log')}
-                                            className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition relative ${rightPanelTab === 'log' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-b-2 border-transparent'}`}
+                                            className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition relative ${rightPanelTab === 'log' ? 'bg-red-600 text-white shadow-lg shadow-red-500/30' : 'bg-gray-950 text-gray-300 hover:bg-gray-800 border-b-2 border-transparent'}`}
                                         >
                                             <FileText size={16} /> ゲームログ
                                         </button>

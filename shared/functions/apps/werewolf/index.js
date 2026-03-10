@@ -17,60 +17,55 @@ const handlers = require('./src/handlers');
 
 // --- 定期実行関数 ---
 
-// 放置部屋のクリーンアップ (10分ごとに実行)
-// サーバーサイドで定期的に監視し、プレイヤーが全員いなくなった部屋を自動終了させる
-exports.cleanupAbandonedRooms = onSchedule({ schedule: "every 10 minutes", region: "asia-northeast2" }, async (event) => {
+// 放置部屋のクリーンアップ (1分ごとに実行)
+// サーバーサイドで定期的に監視し、プレイヤーが全員オフラインになった部屋を自動終了させる
+exports.cleanupAbandonedRooms = onSchedule({ schedule: "every 1 minutes", region: "asia-northeast2" }, async (event) => {
     const roomsRef = getDb().collection('artifacts').doc('mansuke-jinro').collection('public').doc('data').collection('rooms');
     const now = Date.now();
-    const TIMEOUT_MS = 10 * 60 * 1000; // タイムアウト判定基準：10分
+    const TIMEOUT_MS = 90 * 1000; // タイムアウト判定基準：90秒（クライアント側heartbeat間隔 + バッファ）
 
-    const batch = db.batch();
+    const batch = getDb().batch();
     let updateCount = 0;
 
     // 監視対象のステータス：プレイ中または待機中
-    const statusesToCheck = ['playing', 'waiting'];
+    const snapshot = await roomsRef.where('status', 'in', ['playing', 'waiting']).get();
 
-    for (const status of statusesToCheck) {
-        // ステータスごとにクエリ実行
-        const snapshot = await roomsRef.where('status', '==', status).get();
+    for (const doc of snapshot.docs) {
+        // プレイヤーサブコレクションを取得して生存確認
+        const playersSnap = await doc.ref.collection('players').get();
+        let allOffline = true;
 
-        for (const doc of snapshot.docs) {
-            // プレイヤーサブコレクションを取得して生存確認
-            const playersSnap = await doc.ref.collection('players').get();
-            let allOffline = true;
-
-            if (!playersSnap.empty) {
-                for (const pDoc of playersSnap.docs) {
-                    const pData = pDoc.data();
-                    // lastSeen（最終アクセス時刻）を確認
-                    const lastSeen = pData.lastSeen && pData.lastSeen.toMillis ? pData.lastSeen.toMillis() : 0;
-                    // 1人でも10分以内にアクセスがあれば部屋は有効とみなす
-                    if (now - lastSeen < TIMEOUT_MS) {
-                        allOffline = false;
-                        break;
-                    }
+        if (!playersSnap.empty) {
+            for (const pDoc of playersSnap.docs) {
+                const pData = pDoc.data();
+                // lastSeen（最終アクセス時刻）を確認
+                const lastSeen = pData.lastSeen && pData.lastSeen.toMillis ? pData.lastSeen.toMillis() : 0;
+                // 1人でもタイムアウト時間以内にアクセスがあれば部屋は有効とみなす
+                if (now - lastSeen < TIMEOUT_MS) {
+                    allOffline = false;
+                    break;
                 }
             }
+        }
 
-            // 全員オフライン（またはプレイヤー0人）の場合
-            if (allOffline) {
-                const roomData = doc.data();
-                // プレイ中は「中断(aborted)」、ロビー待機中は「閉鎖(closed)」へ変更
-                const nextStatus = status === 'playing' ? 'aborted' : 'closed';
+        // 全員オフライン（またはプレイヤー0人）の場合
+        if (allOffline) {
+            const roomData = doc.data();
+            // プレイ中は「中断(aborted)」、ロビー待機中は「閉鎖(closed)」へ変更
+            const nextStatus = roomData.status === 'playing' ? 'aborted' : 'closed';
 
-                // システムログ追加
-                const logMsg = {
-                    text: "プレイヤーが全員不在となったため、システムにより自動終了しました。",
-                    phase: "System",
-                    day: roomData.day || 1
-                };
+            // システムログ追加
+            const logMsg = {
+                text: "プレイヤーが全員不在となったため、システムにより自動終了しました。",
+                phase: "System",
+                day: roomData.day || 1
+            };
 
-                batch.update(doc.ref, {
-                    status: nextStatus,
-                    logs: admin.firestore.FieldValue.arrayUnion(logMsg)
-                });
-                updateCount++;
-            }
+            batch.update(doc.ref, {
+                status: nextStatus,
+                logs: admin.firestore.FieldValue.arrayUnion(logMsg)
+            });
+            updateCount++;
         }
     }
 

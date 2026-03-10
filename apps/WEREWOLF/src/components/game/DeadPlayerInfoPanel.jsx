@@ -8,7 +8,7 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
     const [viewMode, setViewMode] = useState('role');
 
     // playersがundefined/nullの場合の対策。空配列フォールバック
-    const safePlayers = players || [];
+    const safePlayers = useMemo(() => players || [], [players]);
 
     // 表示対象フィルタリング
     // 条件: 役職判明済み OR 死亡 OR 追放 OR 観戦者
@@ -34,7 +34,7 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
             if (p.originalRole === 'cursed' && roleKey === 'werewolf') {
                 roleName = "呪われし者 - 人狼陣営";
             } else if (p.originalRole === 'cursed') {
-                roleName = "呪われし者 - 村人陣営";
+                roleName = "呪われし者 - 市民陣営";
             }
 
             const Icon = def ? def.icon : (isSpectator ? Eye : User);
@@ -42,37 +42,37 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
 
             // 陣営ごとのスタイル定義（色、枠線、背景、ラベル）
             // デフォルト: その他（グレー）
-            let teamColor = "text-gray-400";
+            let teamColor = "text-gray-300";
             let borderColor = "border-gray-700";
-            let bgColor = "bg-gray-800/40";
+            let bgColor = "bg-gray-950";
             let teamLabel = "その他";
 
             // 陣営判定ロジック
             if (team === 'werewolf') {
                 // 人狼陣営: 赤系
                 teamColor = "text-red-400";
-                borderColor = "border-red-900/30";
-                bgColor = "bg-red-900/10";
+                borderColor = "border-red-500/40";
+                bgColor = "bg-red-900/20";
                 teamLabel = "人狼陣営";
             } else if (team === 'citizen') {
-                // 村人陣営: 青系
-                teamColor = "text-blue-400";
-                borderColor = "border-blue-900/30";
-                bgColor = "bg-blue-900/10";
-                teamLabel = "村人陣営";
+                // 市民陣営: 青系
+                teamColor = "text-red-400";
+                borderColor = "border-red-500/30";
+                bgColor = "bg-red-950/30";
+                teamLabel = "市民陣営";
             } else if (team === 'third') {
                 // 第三陣営: オレンジ系
-                teamColor = "text-orange-400";
-                borderColor = "border-orange-900/30";
-                bgColor = "bg-orange-900/10";
+                teamColor = "text-amber-400";
+                borderColor = "border-amber-500/40";
+                bgColor = "bg-amber-900/20";
                 teamLabel = "第三陣営";
             }
 
             // 観戦者上書き設定: 紫系
             if (isSpectator) {
                 teamColor = "text-purple-400";
-                borderColor = "border-purple-900/30";
-                bgColor = "bg-purple-900/10";
+                borderColor = "border-purple-500/40";
+                bgColor = "bg-purple-900/20";
                 teamLabel = "観戦者";
             }
 
@@ -135,11 +135,11 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
 
             // 表示順序定義
             const sections = [
-                { key: 'werewolf', label: '人狼陣営', color: 'text-red-400', bg: 'bg-red-950/30', border: 'border-red-900/50' },
-                { key: 'citizen', label: '村人陣営', color: 'text-blue-400', bg: 'bg-blue-950/30', border: 'border-blue-900/50' },
-                { key: 'third', label: '第三陣営', color: 'text-orange-400', bg: 'bg-orange-950/30', border: 'border-orange-900/50' },
-                { key: 'spectator', label: '観戦者', color: 'text-purple-400', bg: 'bg-purple-950/30', border: 'border-purple-900/50' },
-                { key: 'other', label: 'その他', color: 'text-gray-400', bg: 'bg-gray-900/30', border: 'border-gray-800' },
+                { key: 'werewolf', label: '人狼陣営', color: 'text-red-300', bg: 'bg-red-900/30', border: 'border-red-500/40' },
+                { key: 'citizen', label: '市民陣営', color: 'text-blue-400', bg: 'bg-red-900/30', border: 'border-red-500/30' },
+                { key: 'third', label: '第三陣営', color: 'text-amber-300', bg: 'bg-amber-900/30', border: 'border-amber-500/40' },
+                { key: 'spectator', label: '観戦者', color: 'text-purple-300', bg: 'bg-purple-900/30', border: 'border-purple-500/40' },
+                { key: 'other', label: 'その他', color: 'text-gray-300', bg: 'bg-gray-700', border: 'border-gray-600' },
             ];
 
             return (
@@ -154,9 +154,9 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
                                 <div key={section.key} className={`rounded-xl overflow-hidden border ${section.border}`}>
                                     <div className={`px-3 py-1.5 text-xs font-bold ${section.bg} ${section.color} flex justify-between items-center`}>
                                         <span>{section.label}</span>
-                                        <span className="bg-black/20 px-1.5 rounded text-[10px]">{players.length}</span>
+                                        <span className="bg-gray-800/50 px-1.5 rounded text-[10px]">{players.length}</span>
                                     </div>
-                                    <div className="p-2 gap-2 grid grid-cols-1 bg-black/10">
+                                    <div className="p-2 gap-2 grid grid-cols-1 bg-gray-950">
                                         {players.map(p => <PlayerCard key={p.id} player={p} />)}
                                     </div>
                                 </div>
@@ -177,10 +177,10 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
                                 {/* 陣営ヘッダー */}
                                 <div className={`px-3 py-1.5 text-xs font-bold ${section.bg} ${section.color} flex justify-between items-center`}>
                                     <span>{section.label}</span>
-                                    <span className="bg-black/20 px-1.5 rounded text-[10px]">{totalCount}</span>
+                                    <span className="bg-gray-800/50 px-1.5 rounded text-[10px]">{totalCount}</span>
                                 </div>
 
-                                <div className="p-2 bg-black/10 space-y-2">
+                                <div className="p-2 bg-gray-950 space-y-2">
                                     {/* 役職ごとのブロック生成 */}
                                     {roleKeys.map(roleKey => {
                                         const players = roleGroups[roleKey];
@@ -188,9 +188,9 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
                                         const roleName = players[0].roleName;
 
                                         return (
-                                            <div key={roleKey} className="bg-gray-900/40 rounded-lg border border-gray-700/50 overflow-hidden">
+                                            <div key={roleKey} className="bg-gray-800/80 rounded-lg border border-gray-700 overflow-hidden shadow-sm">
                                                 {/* 役職名ヘッダー */}
-                                                <div className="px-2 py-1 bg-black/20 text-[10px] text-gray-400 font-bold border-b border-gray-700/30 flex justify-between">
+                                                <div className="px-2 py-1 bg-gray-800 text-[10px] text-gray-300 font-bold border-b border-gray-700 flex justify-between">
                                                     <span>{roleName}</span>
                                                     <span>x{players.length}</span>
                                                 </div>
@@ -213,24 +213,24 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
     return (
         // 高さ制限を追加 (h-[50vh] など) して、SPレイアウトでも伸びすぎないようにする
         // lg:h-full でPCレイアウトでは親の高さに追従
-        <div className="flex flex-col w-full h-[50vh] lg:h-full bg-gray-900/80 backdrop-blur border border-gray-700 rounded-2xl overflow-hidden shadow-xl">
+        <div className="flex flex-col w-full h-[50vh] lg:h-full bg-gray-800/80 backdrop-blur border border-gray-700 rounded-2xl overflow-hidden shadow-xl">
             {/* パネルヘッダー */}
-            <div className="p-3 border-b border-gray-700 bg-gray-800/80 flex items-center justify-between shrink-0">
+            <div className="p-3 border-b border-gray-700 bg-gray-950 flex items-center justify-between shrink-0">
                 <span className="font-bold text-gray-200 flex items-center gap-2 text-sm truncate">
-                    <Users size={16} className="text-blue-400 shrink-0" /> {title}
+                    <Users size={16} className="text-red-400 shrink-0" /> {title}
                 </span>
 
                 {/* トグルボタンエリア */}
-                <div className="flex bg-black/30 rounded-lg p-0.5 border border-gray-700 shrink-0">
+                <div className="flex bg-gray-800 rounded-lg p-0.5 border border-gray-700 shrink-0">
                     <button
                         onClick={() => setViewMode('role')}
-                        className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold flex items-center gap-1 transition whitespace-nowrap ${viewMode === 'role' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold flex items-center gap-1 transition whitespace-nowrap ${viewMode === 'role' ? 'bg-gray-800/80 text-gray-200 shadow border border-gray-700' : 'text-gray-300 hover:text-gray-200 hover:bg-gray-700'}`}
                     >
                         <LayoutGrid size={12} className="shrink-0" /> 役職順
                     </button>
                     <button
                         onClick={() => setViewMode('name')}
-                        className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold flex items-center gap-1 transition whitespace-nowrap ${viewMode === 'name' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`px-2 py-1 rounded-md text-[10px] md:text-xs font-bold flex items-center gap-1 transition whitespace-nowrap ${viewMode === 'name' ? 'bg-gray-800/80 text-gray-200 shadow border border-gray-700' : 'text-gray-300 hover:text-gray-200 hover:bg-gray-700'}`}
                     >
                         <SortAsc size={12} className="shrink-0" /> 名前順
                     </button>
@@ -241,8 +241,8 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
             <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
                 {targets.length === 0 ? (
                     // 該当者なし時の空表示
-                    <div className="h-full flex flex-col items-center justify-center text-gray-500 text-sm">
-                        <Skull size={32} className="mb-2 opacity-50" />
+                    <div className="h-full flex flex-col items-center justify-center text-gray-300 text-sm font-bold">
+                        <Skull size={32} className="mb-2 opacity-70" />
                         <p>該当するプレイヤーはいません</p>
                     </div>
                 ) : (
@@ -255,7 +255,7 @@ export const DeadPlayerInfoPanel = ({ players, title = "プレイヤーの役職
 };
 
 // 子コンポーネント: 個別プレイヤーカード
-const PlayerCard = ({ player, minimal }) => {
+const PlayerCard = ({ player }) => {
     // 必要なプロパティを分割代入
     const { name, roleName, Icon, teamColor, borderColor, bgColor, status, originalRole, deathReason, isHost, isSpectator } = player;
 
@@ -266,10 +266,10 @@ const PlayerCard = ({ player, minimal }) => {
     const isDead = !isSpectator && status === 'dead';
 
     return (
-        <div className={`flex items-center p-2.5 rounded-lg border ${borderColor} ${bgColor} transition hover:bg-gray-700/40 relative overflow-hidden group`}>
+        <div className={`flex items-center p-2.5 rounded-lg border ${borderColor} ${bgColor} transition hover:bg-gray-800 relative overflow-hidden group shadow-sm`}>
 
             {/* アイコンエリア（左側） */}
-            <div className={`p-2 rounded-full bg-black/30 mr-3 ${teamColor} shrink-0 relative`}>
+            <div className={`p-2 rounded-full bg-gray-800/50 border border-current mr-3 ${teamColor} shrink-0 relative`}>
                 <Icon size={18} className="shrink-0" />
                 {/* ホスト（王冠）アイコンオーバーレイ */}
                 {isHost && <div className="absolute -top-1 -left-1 bg-yellow-500 text-black p-0.5 rounded-full border border-black"><Crown size={8} /></div>}
@@ -279,12 +279,12 @@ const PlayerCard = ({ player, minimal }) => {
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
                     {/* 名前表示。死亡/追放時は取り消し線と色変更 */}
-                    <span className={`font-bold truncate text-sm ${isDead || showVanishedTag ? 'text-gray-400 line-through decoration-red-500/50' : 'text-gray-200'}`}>
+                    <span className={`font-bold truncate text-sm ${isDead || showVanishedTag ? 'text-gray-300 line-through decoration-red-500/50' : 'text-gray-100'}`}>
                         {name}
                     </span>
                     {/* 開発者バッジ表示 */}
                     {player.isDev && (
-                        <span className="text-[9px] md:text-[10px] bg-indigo-900/50 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 flex items-center gap-0.5 shrink-0">
+                        <span className="text-[9px] md:text-[10px] bg-red-900/30 text-red-300 px-1.5 py-0.5 rounded border border-red-500/30 flex items-center gap-0.5 shrink-0">
                             <BadgeCheck size={10} /> MANSUKE
                         </span>
                     )}
@@ -293,7 +293,7 @@ const PlayerCard = ({ player, minimal }) => {
                         {/* オフライン表示 */}
                         {!isPlayerOnline(player) && <WifiOff size={10} className="text-red-500" />}
                         {/* 追放ラベル */}
-                        {showVanishedTag && <span className="text-[9px] text-gray-500 font-bold border border-gray-700 px-1 rounded bg-black/30">追放</span>}
+                        {showVanishedTag && <span className="text-[9px] text-gray-300 font-bold border border-gray-600 px-1 rounded bg-gray-800">追放</span>}
                     </div>
                 </div>
 
@@ -304,7 +304,7 @@ const PlayerCard = ({ player, minimal }) => {
                     </span>
                     {/* 元役職表示（役職変化があった場合のみ。観戦者は除外） */}
                     {!isSpectator && originalRole && originalRole !== player.role && (
-                        <span className="text-[10px] text-gray-500">
+                        <span className="text-[10px] text-gray-300">
                             (元: {ROLE_DEFINITIONS[originalRole]?.name || originalRole})
                         </span>
                     )}
@@ -314,8 +314,8 @@ const PlayerCard = ({ player, minimal }) => {
             {/* 死因表示エリア（観戦者以外かつ死因ありの場合） */}
             {!isSpectator && deathReason && (
                 <div className="text-right pl-2 max-w-[100px] shrink-0 flex flex-col items-end justify-center">
-                    <span className="text-[9px] text-gray-500 leading-none mb-0.5">死因</span>
-                    <span className="text-[10px] text-red-300 font-medium break-words w-full text-right" title={deathReason}>
+                    <span className="text-[9px] text-gray-300 leading-none mb-0.5">死因</span>
+                    <span className="text-[10px] text-red-600 font-medium break-words w-full text-right" title={deathReason}>
                         {deathReason}
                     </span>
                 </div>

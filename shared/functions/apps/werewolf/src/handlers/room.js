@@ -104,7 +104,7 @@ exports.abortGameHandler = async (request) => {
         // アーカイブ保存用に全プレイヤー情報（役職含む）を取得
         const pSnap = await roomRef.collection('players').get();
         const secretRefs = pSnap.docs.map(d => d.ref.collection('secret').doc('roleData'));
-        const secretSnaps = await db.getAll(...secretRefs);
+        const secretSnaps = await getDb().getAll(...secretRefs);
 
         // プレイヤーデータの結合
         const players = pSnap.docs.map((d, i) => {

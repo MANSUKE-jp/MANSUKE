@@ -1,4 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 if (!admin.apps.length) admin.initializeApp();
@@ -68,7 +69,7 @@ async function createUniqueTempOrder(ordersDb, orderData) {
  * 料金を支払い、レシート(Receipt)を発行する関数。
  * フロントエンドから決済モーダル経由で呼ばれる。
  */
-exports.processPayment = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
+exports.processPayment = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     let { amount, serviceId, description } = request.data;
 
@@ -175,7 +176,7 @@ exports.processPayment = onCall({ region: "asia-northeast2", cors: true, enforce
  * ただし今回はサービス間連携のため、フロントからでも呼べるようにしておくか、Admin SDKでのみ呼べるようにする。
  * レシートが used: false の場合のみ返金可能。）
  */
-exports.refundPayment = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
+exports.refundPayment = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { receiptId } = request.data;
 
@@ -264,7 +265,7 @@ exports.refundPayment = onCall({ region: "asia-northeast2", cors: true, enforceA
 /**
  * Handles MANSUKE PREPAID CARD redemption.
  */
-exports.redeemCard = onCall({ region: "asia-northeast2", cors: true, enforceAppCheck: false, invoker: "public" }, async (request) => {
+exports.redeemCard = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { pinCode, userPin } = request.data;
 
@@ -393,3 +394,292 @@ exports.redeemCard = onCall({ region: "asia-northeast2", cors: true, enforceAppC
 
 exports.createUniqueTransactionId = createUniqueTempOrder; // Export so staff adjust can use it
 
+async function internalCreateSubscription(uid, amount, serviceId, description, interval = 'month') {
+    // Security Update: Enforce Server-Side Amount if needed
+    if (serviceId === 'hirusupa_gemini') {
+        amount = 5;
+    }
+
+    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+        throw new HttpsError('invalid-argument', '不正な金額です。');
+    }
+    if (!serviceId) {
+        throw new HttpsError('invalid-argument', 'サービスIDが指定されていません。');
+    }
+
+    const userRef = db.collection('users').doc(uid);
+    const subId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const subRef = userRef.collection('subscriptions').doc(subId);
+
+    const receiptId = `rect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const receiptRef = userRef.collection('receipts').doc(receiptId);
+    const transactionId = `${serviceId}_${Date.now()}`;
+    const transRef = userRef.collection('transactions').doc(transactionId);
+
+    const { transactionId: generatedTransactionId, orderRef } = await createUniqueTempOrder(ordersDb, {
+        userId: uid,
+        amount,
+        serviceId,
+        description,
+        receiptId,
+        type: 'subscription_initial'
+    });
+
+    try {
+        await db.runTransaction(async (t) => {
+            const userSnap = await t.get(userRef);
+            if (!userSnap.exists) {
+                throw new HttpsError('not-found', 'ユーザーが見つかりません。');
+            }
+
+            const currentBalance = userSnap.data().balance || 0;
+            if (currentBalance < amount) {
+                throw new HttpsError('failed-precondition', '残高が不足しています。');
+            }
+
+            const now = new Date();
+            const nextBillingDate = new Date(now);
+            if (interval === 'month') {
+                nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+            } else if (interval === 'day') {
+                nextBillingDate.setDate(nextBillingDate.getDate() + 1);
+            } else if (interval === 'year') {
+                nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+            } else {
+                throw new HttpsError('invalid-argument', '無効な期間指定です。');
+            }
+
+            t.update(userRef, {
+                balance: FieldValue.increment(-amount),
+                updatedAt: FieldValue.serverTimestamp()
+            });
+
+            t.set(transRef, {
+                amount: -amount,
+                balanceAfter: currentBalance - amount,
+                type: 'payment',
+                label: description || `[${serviceId.toUpperCase()}] サブスクリプション初回決済`,
+                createdAt: FieldValue.serverTimestamp(),
+                serviceId,
+                receiptId,
+                transactionId: generatedTransactionId,
+                subscriptionId: subId
+            });
+
+            t.set(receiptRef, {
+                amount,
+                serviceId,
+                description,
+                used: false,
+                createdAt: FieldValue.serverTimestamp(),
+                transactionId: transactionId,
+                globalTransactionId: generatedTransactionId,
+                subscriptionId: subId
+            });
+
+            t.set(subRef, {
+                serviceId,
+                description,
+                amount,
+                interval,
+                status: 'active',
+                createdAt: FieldValue.serverTimestamp(),
+                nextBillingDate: admin.firestore.Timestamp.fromDate(nextBillingDate),
+                lastBillingDate: FieldValue.serverTimestamp(),
+                failureCount: 0
+            });
+        });
+
+        await orderRef.update({
+            status: 'completed',
+            updatedAt: FieldValue.serverTimestamp()
+        });
+
+        return { success: true, subId, receiptId, transactionId: generatedTransactionId };
+    } catch (e) {
+        await orderRef.update({
+            status: 'failed',
+            error: e.message,
+            updatedAt: FieldValue.serverTimestamp()
+        }).catch(err => console.error("Failed to update order status to failed:", err));
+
+        if (e instanceof HttpsError) throw e;
+        console.error("Subscription Error:", e);
+        throw new HttpsError('internal', 'サブスクリプション処理に失敗しました。');
+    }
+}
+
+/**
+ * サブスクリプションを作成し、初回の決済を行う
+ */
+exports.createSubscription = onCall({ invoker: "public" }, async (request) => {
+    const uid = await getAuthenticatedUid(request);
+    let { amount, serviceId, description, interval = 'month' } = request.data;
+    return await internalCreateSubscription(uid, amount, serviceId, description, interval);
+});
+
+async function internalCancelSubscription(uid, subId) {
+    if (!subId) {
+        throw new HttpsError('invalid-argument', 'サブスクリプションIDが指定されていません。');
+    }
+
+    const subRef = db.collection('users').doc(uid).collection('subscriptions').doc(subId);
+    
+    try {
+        await db.runTransaction(async (t) => {
+            const subSnap = await t.get(subRef);
+            if (!subSnap.exists) {
+                throw new HttpsError('not-found', 'サブスクリプションが見つかりません。');
+            }
+            if (subSnap.data().status === 'cancelled') {
+                throw new HttpsError('failed-precondition', '既にキャンセルされています。');
+            }
+
+            t.update(subRef, {
+                status: 'cancelled',
+                cancelledAt: FieldValue.serverTimestamp()
+            });
+        });
+
+        return { success: true };
+    } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        console.error("Cancel Subscription Error:", e);
+        throw new HttpsError('internal', 'キャンセル処理に失敗しました。');
+    }
+}
+
+/**
+ * サブスクリプションをキャンセルする
+ */
+exports.cancelSubscription = onCall({ invoker: "public" }, async (request) => {
+    const uid = await getAuthenticatedUid(request);
+    const { subId } = request.data;
+    return await internalCancelSubscription(uid, subId);
+});
+
+/**
+ * 定期的にサブスクリプションの決済を行うスケジュール関数
+ * 毎時間実行し、nextBillingDate が過ぎている active なサブスクリプションを処理。
+ */
+exports.processSubscriptions = onSchedule({ schedule: "every 1 hours" }, async (event) => {
+    const nowTimestamp = admin.firestore.Timestamp.now();
+    
+    const subsQuery = db.collectionGroup('subscriptions')
+        .where('status', '==', 'active')
+        .where('nextBillingDate', '<=', nowTimestamp)
+        .limit(100);
+
+    try {
+        const querySnapshot = await subsQuery.get();
+        if (querySnapshot.empty) {
+            console.log("No subscriptions to process.");
+            return;
+        }
+
+        console.log(`Processing ${querySnapshot.size} subscriptions...`);
+
+        for (const doc of querySnapshot.docs) {
+            const subData = doc.data();
+            const subRef = doc.ref;
+            const userRef = subRef.parent.parent;
+            if (!userRef) continue;
+            
+            const uid = userRef.id;
+            const amount = subData.amount;
+            const serviceId = subData.serviceId;
+            const description = subData.description || `[${serviceId.toUpperCase()}] 定期課金`;
+
+            try {
+                await db.runTransaction(async (t) => {
+                    const userSnap = await t.get(userRef);
+                    if (!userSnap.exists) {
+                        t.update(subRef, { status: 'failed', failureReason: 'user-not-found', updatedAt: FieldValue.serverTimestamp() });
+                        return;
+                    }
+                    const subSnap = await t.get(subRef);
+                    if (!subSnap.exists || subSnap.data().status !== 'active') {
+                        return;
+                    }
+
+                    const currentBalance = userSnap.data().balance || 0;
+                    if (currentBalance < amount) {
+                        t.update(subRef, {
+                            status: 'insufficient_funds',
+                            failureCount: FieldValue.increment(1),
+                            lastFailedAt: FieldValue.serverTimestamp(),
+                            updatedAt: FieldValue.serverTimestamp()
+                        });
+                        return;
+                    }
+
+                    const nextBillingDate = subData.nextBillingDate.toDate();
+                    const interval = subData.interval;
+                    if (interval === 'month') {
+                        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+                    } else if (interval === 'day') {
+                        nextBillingDate.setDate(nextBillingDate.getDate() + 1);
+                    } else if (interval === 'year') {
+                        nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+                    } else {
+                        nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+                    }
+                    
+                    // いつでも未来の日付になるように計算
+                    const now = new Date();
+                    while(nextBillingDate <= now) {
+                        if (interval === 'month') nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+                        else if (interval === 'day') nextBillingDate.setDate(nextBillingDate.getDate() + 1);
+                        else if (interval === 'year') nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+                        else nextBillingDate.setDate(nextBillingDate.getDate() + 30);
+                    }
+
+                    const receiptId = `rect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    const receiptRef = userRef.collection('receipts').doc(receiptId);
+                    const transactionId = `${serviceId}_${Date.now()}`;
+                    const transRef = userRef.collection('transactions').doc(transactionId);
+                    
+                    t.update(userRef, {
+                        balance: FieldValue.increment(-amount),
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+
+                    t.set(transRef, {
+                        amount: -amount,
+                        balanceAfter: currentBalance - amount,
+                        type: 'payment',
+                        label: description,
+                        createdAt: FieldValue.serverTimestamp(),
+                        serviceId,
+                        receiptId,
+                        subscriptionId: doc.id
+                    });
+
+                    t.set(receiptRef, {
+                        amount,
+                        serviceId,
+                        description,
+                        used: false,
+                        createdAt: FieldValue.serverTimestamp(),
+                        subscriptionId: doc.id
+                    });
+
+                    t.update(subRef, {
+                        lastBillingDate: FieldValue.serverTimestamp(),
+                        nextBillingDate: admin.firestore.Timestamp.fromDate(nextBillingDate),
+                        failureCount: 0,
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                });
+            } catch (err) {
+                console.error(`Failed to process subscription ${doc.id} for user ${uid}:`, err);
+            }
+        }
+    } catch (err) {
+        console.error("Error in processSubscriptions:", err);
+    }
+});
+Object.assign(exports, {
+    internalCreateSubscription,
+    internalCancelSubscription
+});

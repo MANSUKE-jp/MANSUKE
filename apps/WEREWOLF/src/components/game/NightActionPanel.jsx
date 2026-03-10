@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase.js';
-import { Check, Moon, Lock, Loader, XCircle, CheckCircle, Info, Shield, Eye, Skull, Search, Crosshair, Crown } from 'lucide-react';
+import { Check, Moon, Lock, Loader, Crosshair, Crown, RotateCw, ScanEye, Users, Clock, X } from 'lucide-react';
 import { ROLE_DEFINITIONS } from '../../constants/gameData.js';
 // LoadingScreen import removed
 
@@ -122,18 +122,17 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         const displayCards = hasResult ? lastActionResult : [{ label: myRole === 'detective' ? "調査" : "霊媒", value: "今夜提供できる情報はありません", sub: "", isBad: false, icon: "Info" }];
 
         return (
-            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl ring-4 ring-purple-400/50">
-                <div className="flex flex-col items-center mb-4 gap-2">
-                    <Search size={48} className="text-purple-400" />
-                    <h3 className="text-xl font-bold text-white">以下の情報をご確認ください</h3>
-                </div>
-                <div className="space-y-3 w-full max-w-sm">
-                    {displayCards.map((card, idx) => (
-                        <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center ${card.isBad ? "bg-red-900/30 border-red-500/50" : card.isBad === false ? "bg-blue-900/30 border-blue-500/50" : "bg-gray-800/30 border-gray-600/50"}`}>
-                            <span className="text-xs font-bold text-gray-400 mb-1">{card.label}</span>
-                            <div className={`text-xl font-black ${card.isBad ? "text-red-400" : "text-white"}`}>{card.value}</div>
-                            {card.sub && <div className="text-sm text-gray-300 mt-1">{card.sub}</div>}
-                        </div>
+            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-800/80 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30">
+            <ScanEye size={48} className="text-purple-500 mb-4 animate-pulse" />
+            <h3 className="text-xl font-bold text-gray-200">以下の情報をご確認ください</h3>
+            
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
+                {displayCards.map((card, idx) => (
+                    <div key={idx} className={`p-4 rounded-xl border flex flex-col items-center shadow-sm ${card.isBad ? "bg-red-900/20 border-red-500/40" : card.isBad === false ? "bg-red-950/30 border-red-500/30" : "bg-gray-950 border-gray-600"}`}>
+                        <span className="text-xs font-bold text-gray-300 mb-1">{card.label}</span>
+                        <div className={`text-xl font-black ${card.isBad ? "text-red-400" : "text-gray-100"}`}>{card.value}</div>
+                        {card.sub && <div className="text-sm text-gray-300 mt-1">{card.sub}</div>}
+                    </div>
                     ))}
                 </div>
             </div>
@@ -222,32 +221,27 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
     // 役職ごとのテキスト・アイコン設定
     let prompt = "対象を選択";
     let doneTitle = "アクション完了";
-    let doneIcon = Check;
 
     if (['werewolf', 'greatwolf', 'wise_wolf'].includes(myRole)) {
         prompt = "どのプレイヤーを襲撃しますか？";
         doneTitle = "襲撃完了";
-        doneIcon = Skull;
     } else if (['seer', 'sage'].includes(myRole)) {
         prompt = "どのプレイヤーを占いますか？";
         doneTitle = "占い完了";
-        doneIcon = Eye;
     } else if (['knight', 'trapper'].includes(myRole)) {
         prompt = "どのプレイヤーを護衛しますか？";
         doneTitle = "護衛完了";
-        doneIcon = Shield;
     } else if (myRole === 'assassin') {
         prompt = "どのプレイヤーの存在意義を抹消しますか？";
         doneTitle = "存在意義抹消設定完了";
-        doneIcon = Crosshair;
     }
 
     // 暗殺者使用済み画面の表示
     if (assassinUsedMsg) {
         return (
-            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl border border-gray-700">
-                <Crosshair size={48} className="text-gray-500 mb-4" />
-                <h3 className="text-lg font-bold text-gray-400">{assassinUsedMsg}</h3>
+            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-950 rounded-xl border border-gray-700 shadow-sm">
+                <Crosshair size={48} className="text-gray-300 mb-4" />
+                <h3 className="text-lg font-bold text-gray-200">{assassinUsedMsg}</h3>
             </div>
         );
     }
@@ -263,30 +257,37 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         const targetName = actionData ? (actionData.targetId === 'skip' ? "誰の存在意義も消さない" : safePlayers.find(p => p.id === actionData.targetId)?.name) : (selectedId ? (selectedId === 'skip' ? "誰の存在意義も消さない" : safePlayers.find(p => p.id === selectedId)?.name) : "---");
         const resultCards = lastActionResult || [];
 
-        return (
-            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl ring-4 ring-yellow-400/50">
-                <div className="bg-white/10 p-4 rounded-full mb-4">
-                    {React.createElement(doneIcon, { size: 48, className: "text-yellow-400" })}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">今夜のアクションは終了しました</h3>
+        const doneDesc = (
+            <span>
+                <span className="text-amber-600 font-bold">{targetName}</span> を{
+                    ['werewolf', 'greatwolf', 'wise_wolf'].includes(myRole) ? "襲撃しました" :
+                        ['seer', 'sage'].includes(myRole) ? "占いました" :
+                            myRole === 'assassin' ? (targetName === "誰の存在意義も消さない" ? "選択しました" : "存在意義を抹消する対象にしました") :
+                                "護衛しました"
+                }
+            </span>
+        );
 
-                <div className="mt-4 w-full max-w-sm bg-black/40 border border-white/10 rounded-xl p-4">
-                    <p className="text-xs text-gray-400 font-bold uppercase mb-2">{doneTitle}</p>
-                    <p className="text-lg text-white font-bold">
-                        <span className="text-yellow-400">{targetName}</span> を{
-                            ['werewolf', 'greatwolf', 'wise_wolf'].includes(myRole) ? "襲撃しました" :
-                                ['seer', 'sage'].includes(myRole) ? "占いました" :
-                                    myRole === 'assassin' ? (targetName === "誰の存在意義も消さない" ? "選択しました" : "存在意義を抹消する対象にしました") :
-                                        "護衛しました"
-                        }
+        return (
+            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-amber-900/20 rounded-xl shadow-[0_0_15px_rgba(251,191,36,0.2)] border border-amber-500/30">
+                <Moon size={48} className="text-amber-500 mb-4" />
+                
+                {/* 完了メッセージ */}
+                <h3 className="text-xl font-bold text-gray-200 mb-2">今夜のアクションは終了しました</h3>
+                
+                <div className="mt-4 w-full max-w-sm bg-gray-800/80 border border-gray-700 shadow-sm rounded-xl p-4">
+                    <p className="text-xs text-gray-300 font-bold uppercase mb-2">{doneTitle}</p>
+                    <p className="text-lg text-gray-200 font-bold">
+                        {doneDesc}
                     </p>
-                    {/* 占い結果などの詳細表示 */}
-                    {resultCards.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
+                    
+                    {/* 詳細結果表示がある場合 */}
+                    {resultCards && resultCards.length > 0 && (
+                        <div className="mt-4 flex flex-wrap justify-center gap-3">
                             {resultCards.map((card, idx) => (
-                                <div key={idx} className="bg-indigo-900/50 p-2 rounded-lg border border-indigo-500/30">
-                                    <span className="text-xs text-indigo-300 block">{card.label}</span>
-                                    <span className="text-xl font-black text-white">{card.value}</span>
+                                <div key={idx} className={`p-3 rounded-lg border flex flex-col items-center bg-gray-950 ${card.isBad ? "border-red-500/30" : card.isBad === false ? "border-red-500/30" : "border-gray-700"}`}>
+                                    <span className="text-[10px] font-bold text-gray-300 mb-1">{card.label}</span>
+                                    <span className="text-xl font-black text-gray-200">{card.value}</span>
                                 </div>
                             ))}
                         </div>
@@ -299,10 +300,10 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
     // 結果待ち画面（サーバー応答待ち）
     if (waitingResult) {
         return (
-            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl border border-purple-500/50">
-                <Loader size={48} className="text-purple-400 animate-spin mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">結果を確認中...</h3>
-                <p className="text-gray-400 text-sm">サーバーからの応答を待っています。</p>
+            <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-800/80 rounded-xl border border-purple-500/40 shadow-sm">
+                <RotateCw size={40} className="text-purple-600 mb-4 animate-spin" />
+                <h3 className="text-xl font-bold text-gray-100 mb-2">結果を確認中...</h3>
+                <p className="text-gray-200 font-medium text-sm">サーバーからの応答を待っています。</p>
             </div>
         );
     }
@@ -312,10 +313,10 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         // リーダー未定時
         if (!leaderId) {
             return (
-                <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-900/80 rounded-xl border border-purple-500/30 items-center justify-center text-center">
-                    <Loader size={32} className="text-purple-400 animate-spin mb-2" />
-                    <p className="text-gray-400 text-sm">リーダーを選出中...</p>
-                    <p className="text-xs text-gray-500 mt-2">画面が変わらない場合は、一度リロードしてください</p>
+                <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-800/80 rounded-xl border border-purple-500/40 shadow-sm items-center justify-center text-center">
+                    <Users size={40} className="text-purple-600 mb-4 animate-pulse"/>
+                    <p className="text-gray-200 font-bold text-sm">リーダーを選出中...</p>
+                    <p className="text-xs text-gray-300 mt-2">画面が変わらない場合は、一度リロードしてください</p>
                 </div>
             );
         }
@@ -329,10 +330,10 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         if (pendingAction && isLeader) {
             const targetName = pendingAction.targetId === 'skip' ? "誰の存在意義も消さない" : (safePlayers.find(p => p.id === pendingAction.targetId)?.name || "不明");
             return (
-                <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-900/80 rounded-xl border border-purple-500/50">
-                    <Loader size={48} className="text-purple-400 animate-spin mb-4" />
-                    <h3 className="text-lg font-bold text-white mb-2">{targetName} の承認を待っています...</h3>
-                    <p className="text-gray-400 text-sm">他のチームメンバーの反応を待っています。</p>
+                <div className="flex flex-col h-full p-4 animate-fade-in items-center justify-center text-center bg-gray-800/80 rounded-xl border border-purple-500/40 shadow-sm">
+                    <Clock size={40} className="text-purple-600 mb-4 animate-pulse"/>
+                    <h3 className="text-lg font-bold text-gray-100 mb-2">{targetName} の承認を待っています...</h3>
+                    <p className="text-gray-200 font-medium text-sm">他のチームメンバーの反応を待っています。</p>
                 </div>
             );
         }
@@ -342,22 +343,22 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
             const targetName = pendingAction.targetId === 'skip' ? "誰の存在意義も消さない" : (safePlayers.find(p => p.id === pendingAction.targetId)?.name || "不明");
             const hasVoted = pendingAction.approvals?.includes(myPlayer.id);
             return (
-                <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-900/80 rounded-xl border border-purple-500/50">
-                    <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
-                        <div className="bg-purple-900/30 p-4 rounded-full border border-purple-500/30">
-                            <Info size={32} className="text-purple-300" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-white mb-1">リーダーは {targetName} さんを選択しました</h3>
-                            <p className="text-sm text-gray-400 mb-4">他のチームメンバー全員からの承認を確認後、選択完了となります。</p>
-                        </div>
-                        <div className="flex gap-3 w-full mt-2">
-                            <button onClick={() => handleVote(false)} disabled={isSubmitting} className="flex-1 py-3 bg-red-900/80 border border-red-500 text-red-200 rounded-xl font-bold hover:bg-red-800 transition flex items-center justify-center gap-2 disabled:opacity-50">
-                                <XCircle size={18} /> 却下
-                            </button>
-                            <button onClick={() => handleVote(true)} disabled={isSubmitting || hasVoted} className={`flex-1 py-3 border rounded-xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 ${hasVoted ? "bg-gray-700 text-gray-400 border-gray-600" : "bg-green-900/80 border-green-500 text-green-200 hover:bg-green-800"}`}>
-                                <CheckCircle size={18} /> {hasVoted ? "承認済み" : "承認"}
-                            </button>
+                <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-800/80 rounded-xl border border-purple-500/40 shadow-sm">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center">
+                        <Check size={48} className="text-purple-600 mb-4"/>
+                        <div className="bg-gray-950 border border-gray-600 p-4 rounded-xl mb-4 w-full">
+                            <h3 className="text-lg font-bold text-gray-100 mb-1">リーダーは {targetName} さんを選択しました</h3>
+                            <p className="text-sm text-gray-200 font-medium mb-4">他のチームメンバー全員からの承認を確認後、選択完了となります。</p>
+                            
+                            {/* 承認/拒否ボタン */}
+                            <div className="flex gap-4 w-full max-w-xs mx-auto">
+                                <button onClick={() => handleVote(false)} disabled={isSubmitting || hasVoted} className={`flex-1 py-3 border rounded-xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 ${hasVoted ? "bg-gray-800 text-gray-300 border-gray-700 shadow-inner" : "bg-red-900/20 border-red-500/40 text-red-400 hover:bg-red-900/30 shadow-sm"}`}>
+                                    <X size={20} /> 拒否
+                                </button>
+                                <button onClick={() => handleVote(true)} disabled={isSubmitting || hasVoted} className={`flex-1 py-3 border rounded-xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 ${hasVoted ? "bg-gray-800 text-gray-300 border-gray-700 shadow-inner" : "bg-green-900/20 border-green-500/40 text-green-400 hover:bg-green-900/30 shadow-sm"}`}>
+                                    <Check size={20} /> 承認
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -367,16 +368,16 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
 
     // ターゲット選択画面（メイン）
     return (
-        <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-900/80 rounded-xl ring-4 ring-purple-500/30">
+        <div className="flex flex-col h-full p-4 animate-fade-in bg-gray-800/80 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.2)] border border-purple-500/30">
             {/* リーダー時の案内表示 */}
             {needsConsensus && (
                 <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-3 mb-4 flex items-start gap-3 shrink-0">
-                    <div className="bg-yellow-500/20 p-2 rounded-full shrink-0">
-                        <Crown size={20} className="text-yellow-400" />
+                    <div className="bg-yellow-100 p-2 rounded-full shrink-0">
+                        <Crown size={20} className="text-yellow-600" />
                     </div>
                     <div>
-                        <h4 className="text-yellow-400 font-bold text-sm mb-1">あなたが今夜の選択リーダーです</h4>
-                        <div className="text-xs text-yellow-200/80 space-y-1 leading-relaxed">
+                        <h4 className="text-yellow-700 font-bold text-sm mb-1">あなたが今夜の選択リーダーです</h4>
+                        <div className="text-xs text-yellow-600/80 space-y-1 leading-relaxed">
                             <p>①{chatName}で、誰を選択するかを話し合ってください。</p>
                             <p>②今夜の対象プレイヤーを選択し、決定を押してください。</p>
                             <p>③他の{['werewolf', 'greatwolf', 'wise_wolf'].includes(myRole) ? "人狼" : ROLE_DEFINITIONS[myRole]?.name}チームの方全員からの承認を確認次第、選択完了となります。</p>
@@ -386,17 +387,17 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
             )}
 
             <div className="text-center mb-4 shrink-0">
-                <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2 mb-1">
-                    <Moon className="text-purple-400 shrink-0" size={20} /> {prompt}
+                <h3 className="text-lg font-bold text-gray-200 flex items-center justify-center gap-2 mb-1">
+                    <Moon className="text-purple-500 shrink-0" size={20} /> {prompt}
                 </h3>
                 {myRole === 'assassin' && (
-                    <p className="text-xs text-red-300 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 mb-2">
+                    <p className="text-xs text-red-600 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 mb-2">
                         ももすけは1ゲームにつき1人しか存在意義を抹消することができません。注意して能力を活用してください。
                     </p>
                 )}
                 {/* 連続護衛禁止の警告 */}
                 {['knight', 'trapper'].includes(myRole) && myPlayer.lastTarget && (
-                    <p className="text-xs text-red-400 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 mt-2">
+                    <p className="text-xs text-red-600 bg-red-900/20 px-2 py-1 rounded border border-red-500/30 mt-2">
                         ※前回護衛したプレイヤー ({safePlayers.find(p => p.id === myPlayer.lastTarget)?.name}) は選択できません。
                     </p>
                 )}
@@ -408,8 +409,8 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
                     <button
                         onClick={() => setSelectedId('skip')}
                         className={`py-3 px-2 rounded-xl border-2 transition text-center flex flex-col items-center justify-center relative col-span-2 ${selectedId === 'skip'
-                            ? "border-purple-500 bg-purple-900/40 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                            : "border-gray-700 bg-gray-800/40 text-gray-400 hover:bg-gray-700/60"
+                            ? "border-purple-500 bg-purple-900/20 text-gray-100 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                            : "border-gray-600 bg-gray-800/80 text-gray-300 hover:bg-gray-950"
                             }`}
                     >
                         <span className="font-bold text-sm">誰の存在意義も消さない</span>
@@ -418,7 +419,7 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
 
                 {/* ターゲットボタン生成 */}
                 {targets.length === 0 ? (
-                    <div className="col-span-2 text-center text-gray-500 py-10">
+                    <div className="col-span-2 text-center text-gray-300 font-bold py-10">
                         <p className="text-sm">選択可能な対象がいません</p>
                     </div>
                 ) : (
@@ -427,8 +428,8 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
                             key={p.id}
                             onClick={() => setSelectedId(p.id)}
                             className={`py-3 px-2 rounded-xl border-2 transition text-center flex flex-col items-center justify-center relative ${selectedId === p.id
-                                ? "border-purple-500 bg-purple-900/40 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]"
-                                : "border-gray-700 bg-gray-800/40 text-gray-400 hover:bg-gray-700/60"
+                                ? "border-purple-500 bg-purple-900/20 text-gray-100 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                                : "border-gray-600 bg-gray-800/80 text-gray-300 hover:bg-gray-950"
                                 }`}
                         >
                             <span className="font-bold text-sm truncate w-full px-1">{p.name}</span>
@@ -441,7 +442,7 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
             <button
                 onClick={needsConsensus ? handlePropose : handleSubmitFinal}
                 disabled={!selectedId || isSubmitting}
-                className="mt-4 w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0"
+                className="mt-4 w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 shrink-0"
             >
                 {isSubmitting ? <Loader className="animate-spin" size={20} /> : (needsConsensus ? "選択して承認へ" : "決定する")}
             </button>

@@ -15,7 +15,7 @@
     "dependencies": {
         "@google/generative-ai": "^0.24.1",
         "@simplewebauthn/server": "^13.2.3",
-        "axios": "^1.13.5",
+        "axios": "^1.13.6",
         "firebase-admin": "^13.6.1",
         "firebase-functions": "^7.0.5"
     },

@@ -37,7 +37,7 @@ export const RoleRevealScreen = ({ role, teammates }) => {
 
                 {/* 役職アイコン表示エリア */}
                 {/* 大きな円形背景、チームカラーに応じた背景色 */}
-                <div className={`mx-auto w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center mb-4 md:mb-6 shadow-2xl ${isWolfTeam ? "bg-red-600" : "bg-blue-600"} ring-4 md:ring-8 ring-white/10`}>
+                <div className={`mx-auto w-32 h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center mb-4 md:mb-6 shadow-2xl ${isWolfTeam ? "bg-red-600" : "bg-red-600"} ring-4 md:ring-8 ring-white/10`}>
                     <Icon size={64} className="text-white md:w-20 md:h-20" />
                 </div>
 
@@ -54,7 +54,7 @@ export const RoleRevealScreen = ({ role, teammates }) => {
                 {/* 仲間リスト表示エリア（人狼同士や共有者など） */}
                 {/* 1秒遅れてフェードインさせる演出 (delay-1000) */}
                 {teammates && teammates.length > 0 && (
-                    <div className="mt-4 md:mt-8 animate-fade-in delay-1000 bg-white/10 p-3 md:p-4 rounded-xl border border-white/20 w-full">
+                    <div className="mt-4 md:mt-8 animate-fade-in delay-1000 bg-gray-800/10 p-3 md:p-4 rounded-xl border border-white/20 w-full">
                         <p className="text-xs md:text-sm text-gray-300 mb-2 font-bold uppercase tracking-wider">仲間</p>
                         <div className="flex flex-wrap justify-center gap-2 md:gap-3">
                             {teammates.map(t => (<span key={t.id} className="px-3 py-1.5 md:px-4 md:py-2 bg-black/40 rounded-full text-white text-xs md:text-sm font-bold border border-white/20">{t.name} ({ROLE_DEFINITIONS[t.role]?.name})</span>))}
@@ -66,9 +66,9 @@ export const RoleRevealScreen = ({ role, teammates }) => {
             {/* 画面下部の時間経過バー */}
             {/* CSSアニメーションで残り時間を可視化 */}
             <div className="absolute bottom-10 w-full px-6 md:px-10">
-                <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
                     {/* TIME_LIMITS.ROLE_REVEAL で定義された秒数でバーが減っていく */}
-                    <div className="h-full bg-white animate-progress-bar w-full origin-left" style={{ animationDuration: `${TIME_LIMITS.ROLE_REVEAL}s` }}></div>
+                    <div className="h-full bg-gray-800/80 animate-progress-bar w-full origin-left" style={{ animationDuration: `${TIME_LIMITS.ROLE_REVEAL}s` }}></div>
                 </div>
             </div>
         </div>

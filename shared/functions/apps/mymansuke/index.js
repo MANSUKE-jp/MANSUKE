@@ -16,9 +16,8 @@ const { registerPasskeyChallenge, verifyPasskeyRegistration, getPasskeyAuthChall
 const { diditWebhook, createDiditSession } = require('./didit');
 const { updateEmail, updatePhone, updateNickname, updateAvatarUrl, deleteAvatarUrl } = require('./profile');
 const { verifyMansukeToken } = require('./tokenVerification');
-const { manFiWebhook } = require('./manfi');
-const { processPayment, refundPayment, redeemCard } = require('../../payment.js');
-
+const { registerVpnDevice, deleteVpnDevice, deleteAllVpnDevices, getVpnConfig } = require('./vpn');
+const { processPayment, refundPayment, redeemCard, createSubscription, cancelSubscription, processSubscriptions } = require('../../payment.js');
 module.exports = {
     // Auth
     checkEmailUnique,
@@ -54,9 +53,17 @@ module.exports = {
     // Payment Processing (Unified)
     processPayment,
     refundPayment,
+    createSubscription,
+    cancelSubscription,
+    processSubscriptions,
+
+    // VPN API
+    registerVpnDevice,
+    deleteVpnDevice,
+    deleteAllVpnDevices,
+    getVpnConfig,
 
     // Webhooks
-    manFiWebhook,
 
     // Auth Tools
     mymansukeVerifyMansukeToken: verifyMansukeToken,

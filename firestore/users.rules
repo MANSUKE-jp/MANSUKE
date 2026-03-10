@@ -27,8 +27,8 @@ service cloud.firestore {
         allow write: if false;
       }
 
-      // man-fi subcollection — user can read their own info
-      match /man-fi/{docId} {
+      // vpn subcollection — user can read their own info
+      match /vpn/{docId} {
         allow read: if request.auth != null && request.auth.uid == userId;
         allow write: if false;
       }

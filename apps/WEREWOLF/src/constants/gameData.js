@@ -21,9 +21,9 @@ export const TIME_LIMITS = {
 };
 
 export const ROLE_DEFINITIONS = {
-    // 村人陣営
+    // 市民陣営
     citizen: {
-        name: '村人',
+        name: '市民',
         icon: User,
         desc: '特殊能力はありません。推理と議論で人狼を探します。',
         team: 'citizen'
@@ -105,7 +105,7 @@ export const ROLE_DEFINITIONS = {
     madman: {
         name: '狂人',
         icon: UserMinus,
-        desc: '人狼の味方をする村人です。嘘をついて場を混乱させます。',
+        desc: '人狼の味方をする市民です。嘘をついて場を混乱させます。',
         team: 'werewolf'
     },
 
@@ -125,7 +125,7 @@ export const ROLE_DEFINITIONS = {
     cursed: {
         name: '呪われし者',
         icon: Skull,
-        desc: '最初は村人としてカウントされますが、人狼に襲撃されると死亡せず、人狼陣営に覚醒します。',
+        desc: '最初は市民としてカウントされますが、人狼に襲撃されると死亡せず、人狼陣営に覚醒します。',
         team: 'third'
     }
 };

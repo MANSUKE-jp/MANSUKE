@@ -13,7 +13,7 @@ import SecurityPage from './pages/SecurityPage';
 import RedeemPage from './pages/RedeemPage';
 import PaymentPage from './pages/PaymentPage';
 import OthersPage from './pages/OthersPage';
-import ManFiPage from './pages/ManFiPage';
+import VpnPage from './pages/VpnPage';
 import LogoutPage from './pages/LogoutPage';
 import SsoRedirect from './pages/SsoRedirect';
 import useChannelTalk from './hooks/useChannelTalk';
@@ -34,8 +34,9 @@ function RequireAuth({ children }) {
         return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
     }
 
-    // After login, must verify passkey before accessing any page
-    if (!passkeyVerified) {
+    // After login, must verify passkey before accessing any page (Skip in local dev)
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!passkeyVerified && !isLocalhost) {
         return <Navigate to="/passkey-verify" replace state={{ from: location }} />;
     }
 
@@ -109,7 +110,7 @@ function AppRoutes() {
                 <Route path="security" element={<SecurityPage />} />
                 <Route path="redeem" element={<RedeemPage />} />
                 <Route path="payment" element={<PaymentPage />} />
-                <Route path="man-fi" element={<ManFiPage />} />
+                <Route path="vpn" element={<VpnPage />} />
                 <Route path="others" element={<OthersPage />} />
             </Route>
 

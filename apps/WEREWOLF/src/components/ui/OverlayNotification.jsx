@@ -29,12 +29,12 @@ export const OverlayNotification = ({ title, subtitle, duration = 3000, isNight,
         // Z-index: 110 (他のUIより最前面に表示)
         // 操作ブロック: pointer-events-none (背後の要素へのクリック透過、ただし視覚的にはブロック)
         // 背景色: テーマに応じて切り替え (透過度95%)
-        <div className={`fixed inset-0 z-[110] flex flex-col items-center justify-center text-center animate-fade-in pointer-events-none ${isNight ? "bg-indigo-950/95" : "bg-orange-50/95"}`}>
+        <div className={`fixed inset-0 z-[110] flex flex-col items-center justify-center text-center animate-fade-in pointer-events-none ${isNight ? "bg-indigo-950/95" : "bg-orange-900/95"}`}>
             
             {/* 通知カードコンテナ */}
             {/* レスポンシブ: SPは幅90%・padding小 / PCは幅固定・padding大 */}
             {/* テーマ: 夜は暗色背景+紫枠 / 昼は白背景+オレンジ枠 */}
-            <div className={`p-6 md:p-12 rounded-3xl shadow-2xl max-w-3xl w-[90%] md:w-full mx-4 ${isNight ? "bg-gray-900 border border-purple-500/50 text-white" : "bg-white border border-orange-200 text-gray-800"}`}>
+            <div className={`p-6 md:p-12 rounded-3xl shadow-2xl max-w-3xl w-[90%] md:w-full mx-4 ${isNight ? "bg-gray-950 border border-purple-500/30 text-gray-200 shadow-[0_0_30px_rgba(168,85,247,0.3)]" : "bg-gray-800/80 border border-orange-200 text-gray-200 shadow-[0_0_30px_rgba(251,146,60,0.3)]"}`}>
                 
                 {/* アイコン表示エリア */}
                 {/* マージン: SP/PCで調整 */}
