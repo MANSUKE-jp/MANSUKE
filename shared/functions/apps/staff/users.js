@@ -151,6 +151,47 @@ exports.staffGetUserDetail = onCall(async (request) => {
                 .orderBy('createdAt', 'desc')
                 .get();
             vpnDevices = vpnSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            // Augment active VPN devices with wg-easy stats
+            const activeWGClients = vpnDevices.filter(d => d.status === 'active' && d.wgClientId);
+            if (activeWGClients.length > 0) {
+                const axios = require('axios');
+                const WG_HOST = 'vpn.mansuke.jp';
+                const WG_PORT = '80';
+                const WG_PASSWORD = 'mansuke_wg_api_pass_2026';
+                const WG_API_URL = `http://${WG_HOST}:${WG_PORT}/api`;
+
+                try {
+                    const wgAuthRes = await axios.post(`${WG_API_URL}/session`, { password: WG_PASSWORD }, { timeout: 4000 });
+                    const cookies = wgAuthRes.headers['set-cookie'];
+                    if (cookies && cookies.length > 0) {
+                        const cookie = cookies[0].split(';')[0];
+                        const wgClientsRes = await axios.get(`${WG_API_URL}/wireguard/client`, {
+                            headers: { 'Cookie': cookie },
+                            timeout: 4000
+                        });
+                        const wgClients = wgClientsRes.data || [];
+                        
+                        vpnDevices = vpnDevices.map(d => {
+                            if (d.status === 'active' && d.wgClientId) {
+                                const wgRealData = wgClients.find(c => c.id === d.wgClientId);
+                                if (wgRealData) {
+                                    return {
+                                        ...d,
+                                        transferRx: wgRealData.transferRx || 0,
+                                        transferTx: wgRealData.transferTx || 0,
+                                        latestHandshakeAt: wgRealData.latestHandshakeAt || null,
+                                        address: wgRealData.address || ''
+                                    };
+                                }
+                            }
+                            return d;
+                        });
+                    }
+                } catch (wgErr) {
+                    logger.warn('Failed to fetch wg-easy stats for VPN devices in staffGetUserDetail', wgErr.message);
+                }
+            }
         } catch (err) {
             logger.warn('Failed to fetch VPN devices', err.message);
         }
@@ -417,5 +458,43 @@ exports.staffDeleteVpnDevice = onCall(async (request) => {
         if (err instanceof HttpsError) throw err;
         logger.error('staffDeleteVpnDevice error', err);
         throw new HttpsError('internal', 'VPNデバイスの削除に失敗しました: ' + err.message);
+    }
+});
+
+// ── staffResumeVpnDevice ──────────────────────────────────────────────
+exports.staffResumeVpnDevice = onCall(async (request) => {
+    await requireStaff(request);
+    const { uid, deviceId } = request.data;
+    if (!uid || !deviceId) throw new HttpsError('invalid-argument', 'UIDとデバイスIDが必要です');
+
+    try {
+        const userRef = getUsersDb().collection('users').doc(uid);
+        const vpnRef = userRef.collection('vpn').doc(deviceId);
+        const vpnDoc = await vpnRef.get();
+        if (!vpnDoc.exists) throw new HttpsError('not-found', 'VPNデバイスが見つかりません');
+
+        const vpnData = vpnDoc.data();
+
+        if (vpnData.subscriptionId) {
+            const { internalResumeSubscription } = require('../../payment.js');
+            try {
+                await internalResumeSubscription(uid, vpnData.subscriptionId);
+            } catch (resumeError) {
+                logger.warn("Subscription resume warning (staff):", resumeError.message);
+                throw new HttpsError('internal', 'サブスクリプションの再開に失敗しました: ' + resumeError.message);
+            }
+        }
+
+        await vpnRef.update({
+            status: 'active',
+            canceledAt: admin.firestore.FieldValue.delete(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        return { success: true, message: "VPNデバイスとサブスクリプションを再開しました。" };
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        logger.error('staffResumeVpnDevice error', err);
+        throw new HttpsError('internal', 'VPN再開に失敗しました: ' + err.message);
     }
 });

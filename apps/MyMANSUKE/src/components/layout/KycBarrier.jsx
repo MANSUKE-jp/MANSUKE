@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Clock, ShieldCheck, XCircle, AlertTriangle, ArrowRight, RefreshCw, Mail, Phone, ExternalLink, Pencil, Check, X, Shield, Lock } from 'lucide-react';
 import { callFunction } from '../../firebase';
+import { usePopup } from '@mansuke/shared';
 
 const REASON_MESSAGES = {
     phoneNumber: 'ご提出いただいた電話番号はリスクが高いため、承認されませんでした。',
@@ -89,6 +90,7 @@ function EditFieldInline({ field, label, value, onSave }) {
 export default function KycBarrier() {
     const { user, userData } = useAuth();
     const [loadingDidit, setLoadingDidit] = useState(false);
+    const popup = usePopup();
 
     if (!user || !userData) return null;
 
@@ -109,7 +111,7 @@ export default function KycBarrier() {
                 throw new Error('セッションURLが取得できませんでした');
             }
         } catch (err) {
-            alert('本人確認セッションの開始に失敗しました: ' + err.message);
+            await popup.alert('本人確認セッションの開始に失敗しました: ' + err.message);
         } finally {
             setLoadingDidit(false);
         }

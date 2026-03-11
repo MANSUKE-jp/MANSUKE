@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { showConsoleWarning } from '@mansuke/shared'
+import { showConsoleWarning, PopupProvider } from '@mansuke/shared'
 
 showConsoleWarning();
 
@@ -13,6 +13,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   // 意図しない副作用を検出するため、コンポーネントを二重にレンダリングする
   // 本番ビルド時には影響しない
   <React.StrictMode>
-    <App />
+    <PopupProvider>
+      <App />
+    </PopupProvider>
   </React.StrictMode>,
 )

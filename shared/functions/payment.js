@@ -60,6 +60,7 @@ async function createUniqueTempOrder(ordersDb, orderData) {
             if (error.code === 6) { // ALREADY_EXISTS code
                 continue;
             }
+            console.error("Error creating temp order:", error);
             throw error;
         }
     }
@@ -69,103 +70,126 @@ async function createUniqueTempOrder(ordersDb, orderData) {
  * 料金を支払い、レシート(Receipt)を発行する関数。
  * フロントエンドから決済モーダル経由で呼ばれる。
  */
-exports.processPayment = onCall({ invoker: "public" }, async (request) => {
-    const uid = await getAuthenticatedUid(request);
-    let { amount, serviceId, description } = request.data;
-
-    // ==== Security Update: Enforce Server-Side Amount ====
-    // 決済金額はクライアントから送信された値ではなく、サーバー側で定義された金額を強制する
-    if (serviceId === 'hirusupa_gemini') {
-        amount = 5;
-        description = "ラジオネーム生成（AI）";
-    }
-    // =====================================================
-
-    if (!amount || amount <= 0 || !Number.isInteger(amount)) {
-        throw new HttpsError('invalid-argument', '不正な金額です。');
-    }
-    if (!serviceId) {
-        throw new HttpsError('invalid-argument', 'サービスIDが指定されていません。');
-    }
-
-    const userRef = db.collection('users').doc(uid);
-    const receiptId = `rect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const receiptRef = userRef.collection('receipts').doc(receiptId);
-
-    // 取引履歴も残す
-    const transactionId = `${serviceId}_${Date.now()}`;
-    const transRef = userRef.collection('transactions').doc(transactionId);
-
-    // 一時的な注文データを作成（決済処理中）
-    const { transactionId: generatedTransactionId, orderRef } = await createUniqueTempOrder(ordersDb, {
-        userId: uid,
-        amount,
-        serviceId,
-        description,
-        receiptId
-    });
-
+exports.processPayment = onCall(async (request) => {
     try {
-        await db.runTransaction(async (t) => {
-            const userSnap = await t.get(userRef);
-            if (!userSnap.exists) {
-                throw new HttpsError('not-found', 'ユーザーが見つかりません。');
-            }
+        const uid = await getAuthenticatedUid(request);
+        let { amount, serviceId, description } = request.data;
 
-            const currentBalance = userSnap.data().balance || 0;
-            if (currentBalance < amount) {
-                throw new HttpsError('failed-precondition', '残高が不足しています。');
-            }
+        // ==== Security Update: Enforce Server-Side Amount ====
+        // 決済金額はクライアントから送信された値ではなく、サーバー側で定義された金額を強制する
+        if (serviceId === 'hirusupa_gemini') {
+            amount = 5;
+            description = "ラジオネーム生成（AI）";
+        }
+        // =====================================================
 
-            // 残高を減らす
-            t.update(userRef, {
-                balance: FieldValue.increment(-amount),
-                updatedAt: FieldValue.serverTimestamp()
-            });
+        if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+            throw new HttpsError('invalid-argument', '不正な金額です。');
+        }
+        if (!serviceId) {
+            throw new HttpsError('invalid-argument', 'サービスIDが指定されていません。');
+        }
 
-            // 取引履歴を作成
-            t.set(transRef, {
-                amount: -amount,
-                balanceAfter: currentBalance - amount,
-                type: 'payment',
-                label: description || `[${serviceId.toUpperCase()}] サービス利用料`,
-                createdAt: FieldValue.serverTimestamp(),
-                serviceId,
-                receiptId,
-                transactionId: generatedTransactionId
-            });
+        const userRef = db.collection('users').doc(uid);
+        const receiptId = `rect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const receiptRef = userRef.collection('receipts').doc(receiptId);
 
-            // レシートを発行（未使用状態）
-            t.set(receiptRef, {
+        // 取引履歴も残す
+        const transactionId = `${serviceId}_${Date.now()}`;
+        const transRef = userRef.collection('transactions').doc(transactionId);
+
+        // 一時的な注文データを作成（決済処理中）
+        let generatedTransactionId, orderRef;
+        try {
+            const tempOrder = await createUniqueTempOrder(ordersDb, {
+                userId: uid,
                 amount,
                 serviceId,
                 description,
-                used: false,
-                createdAt: FieldValue.serverTimestamp(),
-                transactionId: transactionId, // The local history ID
-                globalTransactionId: generatedTransactionId // order ID replacement
+                receiptId
             });
-        });
+            generatedTransactionId = tempOrder.transactionId;
+            orderRef = tempOrder.orderRef;
+        } catch (e) {
+            console.error("Payment Debug: Failed in createUniqueTempOrder:", e);
+            throw e;
+        }
 
-        // 決済成功時に注文のステータスを完了にする
-        await orderRef.update({
-            status: 'completed',
-            updatedAt: FieldValue.serverTimestamp()
-        });
+        try {
+            await db.runTransaction(async (t) => {
+                const userSnap = await t.get(userRef);
+                if (!userSnap.exists) {
+                    console.error(`User missing for uid: ${uid}`);
+                    throw new HttpsError('not-found', 'ユーザーが見つかりません。');
+                }
 
-        return { success: true, receiptId, transactionId: generatedTransactionId };
-    } catch (e) {
-        // 決済失敗時に注文のステータスを失敗にする
-        await orderRef.update({
-            status: 'failed',
-            error: e.message,
-            updatedAt: FieldValue.serverTimestamp()
-        }).catch(err => console.error("Failed to update order status to failed:", err));
+                const currentBalance = userSnap.data().balance || 0;
+                if (currentBalance < amount) {
+                    throw new HttpsError('failed-precondition', '残高が不足しています。');
+                }
+
+                // 残高を減らす
+                t.update(userRef, {
+                    balance: FieldValue.increment(-amount),
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+
+                // 取引履歴を作成
+                t.set(transRef, {
+                    amount: -amount,
+                    balanceAfter: currentBalance - amount,
+                    type: 'payment',
+                    label: description || `[${serviceId.toUpperCase()}] サービス利用料`,
+                    createdAt: FieldValue.serverTimestamp(),
+                    serviceId,
+                    receiptId,
+                    transactionId: generatedTransactionId
+                });
+
+                // レシートを発行（未使用状態）
+                t.set(receiptRef, {
+                    amount,
+                    serviceId,
+                    description,
+                    used: false,
+                    createdAt: FieldValue.serverTimestamp(),
+                    transactionId: transactionId, // The local history ID
+                    globalTransactionId: generatedTransactionId // order ID replacement
+                });
+            });
+
+            // 決済成功時に注文のステータスを完了にする
+            if (orderRef) {
+                await orderRef.update({
+                    status: 'completed',
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+
+            return { success: true, receiptId, transactionId: generatedTransactionId };
+        } catch (e) {
+            // 決済失敗時に注文のステータスを失敗にする
+            if (orderRef) {
+                await orderRef.update({
+                    status: 'failed',
+                    error: e.message || 'Unknown error',
+                    updatedAt: FieldValue.serverTimestamp()
+                }).catch(err => console.error("Failed to update order status to failed:", err));
+            }
 
 
-        if (e instanceof HttpsError) throw e;
-        console.error("Payment Error:", e);
-        throw new HttpsError('internal', '決済処理に失敗しました。');
+            if (e instanceof HttpsError) throw e;
+            console.error("Payment Error Full Details:", e);
+            if (e.stack) console.error("Stack trace:", e.stack);
+            throw new HttpsError('internal', '決済処理に失敗しました。詳細なエラーログを確認してください。');
+        }
+    } catch (globalErr) {
+        console.error("Payment Global Catch:", globalErr);
+        if (globalErr.stack) console.error("Global Stack trace:", globalErr.stack);
+        if (globalErr instanceof HttpsError) {
+            throw globalErr;
+        }
+        throw new HttpsError('internal', `決済処理の初期化に失敗しました: ${globalErr.message || "Unknown"}`);
     }
 });
 
@@ -176,7 +200,7 @@ exports.processPayment = onCall({ invoker: "public" }, async (request) => {
  * ただし今回はサービス間連携のため、フロントからでも呼べるようにしておくか、Admin SDKでのみ呼べるようにする。
  * レシートが used: false の場合のみ返金可能。）
  */
-exports.refundPayment = onCall({ invoker: "public" }, async (request) => {
+exports.refundPayment = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { receiptId } = request.data;
 
@@ -265,7 +289,7 @@ exports.refundPayment = onCall({ invoker: "public" }, async (request) => {
 /**
  * Handles MANSUKE PREPAID CARD redemption.
  */
-exports.redeemCard = onCall({ invoker: "public" }, async (request) => {
+exports.redeemCard = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { pinCode, userPin } = request.data;
 
@@ -512,7 +536,7 @@ async function internalCreateSubscription(uid, amount, serviceId, description, i
 /**
  * サブスクリプションを作成し、初回の決済を行う
  */
-exports.createSubscription = onCall({ invoker: "public" }, async (request) => {
+exports.createSubscription = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     let { amount, serviceId, description, interval = 'month' } = request.data;
     return await internalCreateSubscription(uid, amount, serviceId, description, interval);
@@ -552,7 +576,7 @@ async function internalCancelSubscription(uid, subId) {
 /**
  * サブスクリプションをキャンセルする
  */
-exports.cancelSubscription = onCall({ invoker: "public" }, async (request) => {
+exports.cancelSubscription = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { subId } = request.data;
     return await internalCancelSubscription(uid, subId);
@@ -679,7 +703,40 @@ exports.processSubscriptions = onSchedule({ schedule: "every 1 hours" }, async (
         console.error("Error in processSubscriptions:", err);
     }
 });
+async function internalResumeSubscription(uid, subId) {
+    if (!subId) {
+        throw new HttpsError('invalid-argument', 'サブスクリプションIDが指定されていません。');
+    }
+
+    const subRef = db.collection('users').doc(uid).collection('subscriptions').doc(subId);
+    
+    try {
+        await db.runTransaction(async (t) => {
+            const subSnap = await t.get(subRef);
+            if (!subSnap.exists) {
+                throw new HttpsError('not-found', 'サブスクリプションが見つかりません。');
+            }
+            if (subSnap.data().status !== 'cancelled') {
+                throw new HttpsError('failed-precondition', 'サブスクリプションはキャンセルされていません。');
+            }
+
+            t.update(subRef, {
+                status: 'active',
+                cancelledAt: FieldValue.delete(),
+                updatedAt: FieldValue.serverTimestamp()
+            });
+        });
+
+        return { success: true };
+    } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        console.error("Resume Subscription Error:", e);
+        throw new HttpsError('internal', '再開処理に失敗しました。');
+    }
+}
+
 Object.assign(exports, {
     internalCreateSubscription,
-    internalCancelSubscription
+    internalCancelSubscription,
+    internalResumeSubscription
 });

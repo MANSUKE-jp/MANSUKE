@@ -4,7 +4,7 @@ import { db, functions } from '../firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { Wifi, Plus, Loader2, Smartphone, Trash2, Info, AlertTriangle, PlayCircle } from 'lucide-react';
-import { usePayment } from '@mansuke/shared';
+import { usePayment, usePopup } from '@mansuke/shared';
 import { PaymentModal } from '@mansuke/shared/components/PaymentModal';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -28,6 +28,7 @@ export default function VpnPage() {
     const [isFetchingConfig, setIsFetchingConfig] = useState(false);
     
     const payment = usePayment(functions);
+    const popup = usePopup();
 
     useEffect(() => {
         if (!user?.uid) {
@@ -60,11 +61,11 @@ export default function VpnPage() {
         setShowRegistrationModal(true);
     };
 
-    const submitRegistration = (e) => {
+    const submitRegistration = async (e) => {
         e.preventDefault();
         const trimmed = deviceNameInput.trim();
         if (trimmed.length === 0 || trimmed.length > 10) {
-            alert("デバイス名は1文字以上、10文字以内で入力してください。");
+            await popup.alert("デバイス名は1文字以上、10文字以内で入力してください。");
             return;
         }
         
@@ -83,11 +84,11 @@ export default function VpnPage() {
                     // Call the VPN register function
                     const registerVpnFn = httpsCallable(functions, 'registerVpnDevice');
                     await registerVpnFn({ deviceName: trimmed });
-                    alert("デバイスの登録が完了しました！");
+                    await popup.alert("デバイスの登録が完了しました！");
                     // Data will be refreshed automatically via onSnapshot listener.
                 } catch (error) {
                     console.error("VPN Registration Error:", error);
-                    alert("VPNデバイスの作成に失敗しました: " + (error.message || "予期せぬエラーが発生しました。"));
+                    await popup.alert("VPNデバイスの作成に失敗しました: " + (error.message || "予期せぬエラーが発生しました。"));
                 } finally {
                     setIsRegistering(false);
                 }
@@ -105,23 +106,23 @@ export default function VpnPage() {
             setCancelDevice(null);
         } catch (error) {
             console.error("Delete Error:", error);
-            alert("解約に失敗しました: " + error.message);
+            await popup.alert("解約に失敗しました: " + error.message);
         } finally {
             setIsCanceling(false);
         }
     };
 
     const handleDeleteAll = async () => {
-        if (!window.confirm("本当にすべてのVPNデバイスを解約しますか？\nすべてのサブスクリプションがキャンセルされます。")) return;
+        if (!await popup.confirm("本当にすべてのVPNデバイスを解約しますか？\nすべてのサブスクリプションがキャンセルされます。")) return;
         
         try {
             setLoading(true);
             const deleteAllFn = httpsCallable(functions, 'deleteAllVpnDevices');
             await deleteAllFn();
-            alert("すべてのデバイスを解約しました。");
+            await popup.alert("すべてのデバイスを解約しました。");
         } catch (error) {
              console.error("Delete All Error:", error);
-             alert("解約に失敗しました: " + error.message);
+             await popup.alert("解約に失敗しました: " + error.message);
         } finally {
             setLoading(false);
         }
@@ -137,7 +138,7 @@ export default function VpnPage() {
             setConfigData(result.data.config);
         } catch (error) {
             console.error("Fetch Config Error:", error);
-            alert("設定情報の取得に失敗しました: " + error.message);
+            await popup.alert("設定情報の取得に失敗しました: " + error.message);
             setSetupDevice(null);
         } finally {
             setIsFetchingConfig(false);

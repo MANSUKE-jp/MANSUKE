@@ -3,7 +3,7 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase.js';
 import { Check, Moon, Lock, Loader, Crosshair, Crown, RotateCw, ScanEye, Users, Clock, X } from 'lucide-react';
 import { ROLE_DEFINITIONS } from '../../constants/gameData.js';
-// LoadingScreen import removed
+import { usePopup } from '@mansuke/shared';
 
 export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, teammates, roomCode, roomData, lastActionResult, isDone }) => {
     // players配列がundefinedの場合の対策
@@ -15,6 +15,7 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [waitingResult, setWaitingResult] = useState(false);
     const [assassinUsedMsg, setAssassinUsedMsg] = useState(null);
+    const popup = usePopup();
 
     const isPassive = ['detective', 'medium'].includes(myRole);
     const hasResult = lastActionResult && lastActionResult.length > 0;
@@ -202,7 +203,7 @@ export const NightActionPanel = ({ myRole, players, onActionComplete, myPlayer, 
         } catch (e) {
             setIsSubmitting(false);
             setWaitingResult(false);
-            alert("エラーが発生しました: " + e.message);
+            popup.alert("エラーが発生しました: " + e.message);
         }
     };
 

@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     QrCode, Upload, CreditCard, Users,
-    LogOut, CheckCircle2, Shield, PanelLeftClose, PanelLeftOpen
+    LogOut, CheckCircle2, Shield, PanelLeftClose, PanelLeftOpen, Activity
 } from 'lucide-react';
 
 const NAV_SECTIONS = [

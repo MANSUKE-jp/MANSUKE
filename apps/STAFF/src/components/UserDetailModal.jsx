@@ -6,6 +6,7 @@ import {
 import { callFunction } from '../firebase';
 import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
+import { usePopup } from '@mansuke/shared';
 
 const formatDate = (ts) => {
     if (!ts) return '—';
@@ -22,6 +23,9 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
     const [error, setError] = useState('');
     const [tab, setTab] = useState('info');
     const [saving, setSaving] = useState(false);
+
+    // Popup Hook
+    const popup = usePopup();
 
     // Balance adjust state
     const [showAdjust, setShowAdjust] = useState(false);
@@ -120,7 +124,7 @@ const UserDetailModal = ({ user, onClose, onRefresh }) => {
     };
 
     const handleDeleteAvatar = async () => {
-        if (!window.confirm("プロフィール画像を削除してもよろしいですか？")) return;
+        if (!await popup.confirm("プロフィール画像を削除してもよろしいですか？")) return;
         setUploadingAvatar(true); setError('');
         try {
             const fn = callFunction('staffDeleteAvatarUrl');

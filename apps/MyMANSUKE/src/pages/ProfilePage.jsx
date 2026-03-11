@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { callFunction } from '../firebase';
 import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
+import { usePopup } from '@mansuke/shared';
 
 function InfoRow({ label, value }) {
     return (
@@ -149,6 +150,7 @@ function AvatarRow({ avatarUrl }) {
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
     const fileInputRef = useRef(null);
+    const popup = usePopup();
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -219,7 +221,7 @@ function AvatarRow({ avatarUrl }) {
                     {avatarUrl && (
                         <button
                             onClick={async () => {
-                                if (!window.confirm("プロフィール画像を削除してもよろしいですか？")) return;
+                                if (!await popup.confirm("プロフィール画像を削除してもよろしいですか？")) return;
                                 setUploading(true); setError('');
                                 try {
                                     const fn = callFunction('mymansukeDeleteAvatarUrl');

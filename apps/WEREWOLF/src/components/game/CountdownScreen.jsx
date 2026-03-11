@@ -3,7 +3,7 @@ import { AlertTriangle, Hash, Check, Coins, User, Shield, Moon, Clock, Sparkles 
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../config/firebase.js';
 import { ROLE_NAMES, ROLE_DEFINITIONS } from '../../constants/gameData.js';
-import { usePayment, PaymentModal } from '@mansuke/shared';
+import { usePayment, PaymentModal, usePopup } from '@mansuke/shared';
 
 // ゲーム開始前のカウントダウン・役職希望リクエスト画面
 export const CountdownScreen = ({ roomCode, matchId, mansukeUser, room, timeLeft }) => {
@@ -15,6 +15,7 @@ export const CountdownScreen = ({ roomCode, matchId, mansukeUser, room, timeLeft
 
     // Payment Hook
     const payment = usePayment(functions);
+    const popup = usePopup();
 
     // MANSUKE残高の取得（10Yen以上あるか判定）
     const balance = mansukeUser?.balance || 0;
@@ -37,7 +38,7 @@ export const CountdownScreen = ({ roomCode, matchId, mansukeUser, room, timeLeft
                     await fn({ roomCode, roleId: selectedRole, receiptId });
                     setIsLocked(true);
                 } catch (e) {
-                    alert("リクエストに失敗しました: " + e.message);
+                    popup.alert("リクエストに失敗しました: " + e.message);
                 } finally {
                     setIsSubmitting(false);
                 }

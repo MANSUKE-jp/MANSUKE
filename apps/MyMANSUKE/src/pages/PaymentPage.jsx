@@ -4,7 +4,7 @@ import { CreditCard, Clock, ArrowUp, ArrowDown, AlertCircle, Wallet, PlusCircle,
 import { useAuth } from '../contexts/AuthContext';
 import { db, functions } from '../firebase';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { usePayment, PaymentModal } from '@mansuke/shared';
+import { usePayment, PaymentModal, usePopup } from '@mansuke/shared';
 
 // ── Transaction Row ──────────────────────────────────────────────
 function TransactionRow({ tx, computedBalanceAfter }) {
@@ -84,6 +84,7 @@ export default function PaymentPage() {
     const [showDonationModal, setShowDonationModal] = useState(false);
     const [donationAmount, setDonationAmount] = useState('');
     const payment = usePayment(functions);
+    const popup = usePopup();
 
     const balance = userData?.balance ?? 0;
 
@@ -125,11 +126,11 @@ export default function PaymentPage() {
         });
     }, [rawTransactions, balance]);
 
-    const handleDonationSubmit = (e) => {
+    const handleDonationSubmit = async (e) => {
         e.preventDefault();
         const amount = parseInt(donationAmount, 10);
         if (isNaN(amount) || amount <= 0) {
-            alert('正しい金額を入力してください。');
+            await popup.alert('正しい金額を入力してください。');
             return;
         }
         setShowDonationModal(false);
@@ -137,8 +138,8 @@ export default function PaymentPage() {
             amount,
             description: 'MANSUKEへの寄付',
             serviceName: 'donation',
-            onSuccess: () => {
-                alert('寄付が完了しました。ありがとうございます！');
+            onSuccess: async () => {
+                await popup.alert('寄付が完了しました。ありがとうございます！');
                 setDonationAmount('');
             }
         });
@@ -158,7 +159,7 @@ export default function PaymentPage() {
                             background: 'var(--bg-secondary)', color: 'var(--text-muted)',
                             cursor: 'help', transition: 'background 0.2s',
                         }}
-                        onClick={() => alert("MANSUKEの運営と開発者のモチベーション維持のために、寄付をお願いします！")}
+                        onClick={async () => await popup.alert("MANSUKEの運営と開発者のモチベーション維持のために、寄付をお願いします！")}
                     >
                         <Info size={16} />
                     </div>
@@ -237,7 +238,7 @@ export default function PaymentPage() {
                             </span>
                         </div>
                         <div 
-                            onClick={() => alert('クレジットカード追加機能は準備中です。')}
+                            onClick={async () => await popup.alert('クレジットカード追加機能は準備中です。')}
                             style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 'var(--spacing-md)',
                                 padding: 'var(--spacing-md) var(--spacing-md)', borderBottom: '1px solid var(--border)',

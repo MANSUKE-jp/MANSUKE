@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Loader2, Edit3, Key, DollarSign, Save,
-    User, Mail, Phone, Calendar, Shield, Hash, Clock, X, ShoppingBag, Server, Trash2
+    User, Mail, Phone, Calendar, Shield, Hash, Clock, X, ShoppingBag, Server, Trash2, Terminal, Activity
 } from 'lucide-react';
 import { callFunction } from '../firebase';
+import { usePopup } from '@mansuke/shared';
 
 const formatDate = (ts) => {
     if (!ts) return '—';
@@ -12,8 +13,20 @@ const formatDate = (ts) => {
     return d.toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 };
 
+const formatBytes = (bytes) => {
+    if (bytes === 0 || !bytes) return '0 B';
+    const k = 1024 * 1024; // MB base
+    if (bytes < k) return '< 1 MB'; // Or standard formatting if finer grain needed
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+
 const kycLabels = { pending: '審査待ち', approved: '承認済み', rejected: '拒否', mismatch: '不一致' };
 const kycBadgeClass = { pending: 'badge-inactive', approved: 'badge-active', rejected: 'badge-disabled', mismatch: 'badge-disabled' };
+
+// --- REMOVED VpnLogsTable ---
 
 const UserDetailPage = () => {
     const { uid } = useParams();
@@ -23,6 +36,12 @@ const UserDetailPage = () => {
     const [error, setError] = useState('');
     const [tab, setTab] = useState('info');
     const [saving, setSaving] = useState(false);
+    
+    // Popup Hook
+    const popup = usePopup();
+
+    // VPN Modal State
+    const [cancelModalDevice, setCancelModalDevice] = useState(null);
 
     // Balance adjust state
     const [showAdjust, setShowAdjust] = useState(false);
@@ -376,8 +395,9 @@ const UserDetailPage = () => {
                             ) : (
                                 <div>
                                     {d.vpnDevices.map((device, i) => (
-                                        <div key={device.id} style={{
-                                            padding: '16px 24px', borderBottom: i < d.vpnDevices.length - 1 ? '1px solid var(--border)' : 'none',
+                                        <React.Fragment key={device.id}>
+                                        <div style={{
+                                            padding: '16px 24px', borderBottom: (i < d.vpnDevices.length - 1) ? '1px solid var(--border)' : 'none',
                                             display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
                                         }}>
                                             <div style={{ flex: 1, minWidth: 200 }}>
@@ -389,43 +409,57 @@ const UserDetailPage = () => {
                                                 </div>
                                                 <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', fontFamily: "monospace", marginBottom: 2 }}>ID: {device.id}</div>
                                                 <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', fontFamily: "monospace", marginBottom: 2 }}>Sub: {device.subscriptionId || '—'}</div>
-                                                <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)' }}>作成日: {formatDate(device.createdAt)}</div>
+                                                <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', marginBottom: 2 }}>作成日: {formatDate(device.createdAt)}</div>
+                                                {device.canceledAt && (
+                                                    <div style={{ fontSize: 'var(--xs)', color: 'var(--red)', marginBottom: 2, fontWeight: 600 }}>解約受付日時: {formatDate(device.canceledAt)}</div>
+                                                )}
+                                                {device.status === 'active' && device.address && (
+                                                    <div style={{ marginTop: 8, padding: 12, background: 'var(--bg-2)', borderRadius: 8, fontSize: 'var(--xs)' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 4, marginBottom: 4 }}>
+                                                            <span style={{ color: 'var(--text-3)' }}>IPアドレス:</span>
+                                                            <span style={{ fontFamily: 'monospace', color: 'var(--ink)' }}>{device.address}</span>
+                                                        </div>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 4, marginBottom: 4 }}>
+                                                            <span style={{ color: 'var(--text-3)' }}>データ転送量:</span>
+                                                            <span style={{ color: 'var(--ink)' }}>
+                                                                <span style={{ color: 'var(--green)', fontWeight: 600 }}>↓ {formatBytes(device.transferRx)}</span> / 
+                                                                <span style={{ color: 'var(--blue)', fontWeight: 600, marginLeft: 8 }}>↑ {formatBytes(device.transferTx)}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 4 }}>
+                                                            <span style={{ color: 'var(--text-3)' }}>最終接続:</span>
+                                                            <span style={{ color: 'var(--ink)' }}>{device.latestHandshakeAt ? new Date(device.latestHandshakeAt).toLocaleString('ja-JP') : '未接続'}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            {device.status === 'active' && (
-                                                <div style={{ display: 'flex', gap: 8 }}>
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                {device.status === 'active' && (
                                                     <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }}
+                                                        onClick={() => setCancelModalDevice(device)}>
+                                                        解約
+                                                    </button>
+                                                )}
+                                                {device.status === 'canceled' && (
+                                                    <button className="btn btn-sm btn-outline" style={{ color: 'var(--green)' }}
                                                         onClick={async () => {
-                                                            if (window.confirm(`${device.deviceName} を現在の契約期間満了後に解約しますか？`)) {
+                                                            if (await popup.confirm(`${device.deviceName} を再開し、サブスクリプションを復元しますか？`)) {
                                                                 setSaving(true); setError('');
                                                                 try {
-                                                                    const fn = callFunction('staffDeleteVpnDevice');
-                                                                    await fn({ uid, deviceId: device.id, immediate: false });
+                                                                    const fn = callFunction('staffResumeVpnDevice');
+                                                                    await fn({ uid, deviceId: device.id });
                                                                     await fetchDetail();
                                                                 } catch (err) { setError(err.message); }
                                                                 finally { setSaving(false); }
                                                             }
                                                         }}
                                                         disabled={saving}>
-                                                        期間満了後解約
+                                                        再開
                                                     </button>
-                                                    <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)', background: 'var(--red-bg)' }}
-                                                        onClick={async () => {
-                                                            if (window.confirm(`【警告】${device.deviceName} を即時解約し、完全に削除します。返金は行われません。よろしいですか？`)) {
-                                                                setSaving(true); setError('');
-                                                                try {
-                                                                    const fn = callFunction('staffDeleteVpnDevice');
-                                                                    await fn({ uid, deviceId: device.id, immediate: true });
-                                                                    await fetchDetail();
-                                                                } catch (err) { setError(err.message); }
-                                                                finally { setSaving(false); }
-                                                            }
-                                                        }}
-                                                        disabled={saving}>
-                                                        <Trash2 size={14} /> 即時解約
-                                                    </button>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
                                         </div>
+                                        </React.Fragment>
                                     ))}
                                 </div>
                             )}
@@ -504,6 +538,60 @@ const UserDetailPage = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {cancelModalDevice && (
+                <div className="modal-backdrop" onClick={() => !saving && setCancelModalDevice(null)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+                        <div className="modal-header">
+                            <h3 style={{ margin: 0, fontSize: 'var(--lg)', fontWeight: 800 }}>VPN解約 ({cancelModalDevice.deviceName})</h3>
+                            <button className="icon-btn" onClick={() => setCancelModalDevice(null)} disabled={saving}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <p style={{ fontSize: 'var(--sm)', color: 'var(--text-2)' }}>解約方法を選択してください。</p>
+                            <button className="btn btn-outline" 
+                                onClick={async () => {
+                                    if (await popup.confirm(`${cancelModalDevice.deviceName} を現在の契約期間満了後に解約しますか？`)) {
+                                        setSaving(true); setError('');
+                                        try {
+                                            const fn = callFunction('staffDeleteVpnDevice');
+                                            await fn({ uid, deviceId: cancelModalDevice.id, immediate: false });
+                                            setCancelModalDevice(null);
+                                            await fetchDetail();
+                                        } catch (err) { setError(err.message); }
+                                        finally { setSaving(false); }
+                                    }
+                                }}
+                                disabled={saving}>
+                                期間満了後解約
+                            </button>
+                            <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', marginTop: -8 }}>
+                                現在の請求期間が終了するまで利用可能ですが、次回の請求は行われません。スタッフは期間終了までに「再開」が可能です。
+                            </div>
+                            
+                            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '8px 0' }} />
+
+                            <button className="btn" style={{ background: 'var(--red-bg)', color: 'var(--red)' }}
+                                onClick={async () => {
+                                    if (await popup.confirm(`【警告】${cancelModalDevice.deviceName} を即時解約し、完全に削除します。返金は行われません。よろしいですか？`)) {
+                                        setSaving(true); setError('');
+                                        try {
+                                            const fn = callFunction('staffDeleteVpnDevice');
+                                            await fn({ uid, deviceId: cancelModalDevice.id, immediate: true });
+                                            setCancelModalDevice(null);
+                                            await fetchDetail();
+                                        } catch (err) { setError(err.message); }
+                                        finally { setSaving(false); }
+                                    }
+                                }}
+                                disabled={saving}>
+                                <Trash2 size={16} /> 即時解約して削除
+                            </button>
+                            <div style={{ fontSize: 'var(--xs)', color: 'var(--red)', marginTop: -8 }}>
+                                直ちにサーバーから削除され、再開はできません。
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -4,7 +4,7 @@
 
 const { staffSearchCards, staffGetCardDetail, staffUpdateCardBalance, staffToggleCardStatus, staffVerifyPrepaidCardCode, activatePrepaidCard, importCards } = require('./cards');
 // Users
-const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl, staffDeleteVpnDevice } = require('./users');
+const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl, staffDeleteVpnDevice, staffResumeVpnDevice } = require('./users');
 const { verifyMansukeToken } = require('./tokenVerification');
 
 module.exports = {
@@ -24,6 +24,7 @@ module.exports = {
     staffUpdateUserProfile,
     staffDeleteAvatarUrl,
     staffDeleteVpnDevice,
+    staffResumeVpnDevice,
 
     // SSO
     staffVerifyMansukeToken: verifyMansukeToken,

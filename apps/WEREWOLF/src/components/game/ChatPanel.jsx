@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MessageSquare, Send, Users, Ghost, PenTool, Lock, ArrowUp } from 'lucide-react';
 import { getMillis } from '../../utils/helpers';
 import { ROLE_DEFINITIONS } from '../../constants/gameData';
+import { usePopup } from '@mansuke/shared';
 
 // チャットパネルコンポーネント
 // 用途: 全体チャット、人狼チャット、霊界チャットなどの表示と入力
@@ -25,6 +26,7 @@ export const ChatPanel = ({
     const [chatInput, setChatInput] = useState("");
     // 自動スクロール用のRef
     const scrollRef = useRef(null);
+    const popup = usePopup();
 
     // メッセージ更新時に最下部へ自動スクロール
     useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -36,7 +38,7 @@ export const ChatPanel = ({
         if (chatInput.trim()) {
             // 文字数制限チェック（クライアントサイドバリデーション）
             if (chatInput.length > 50) {
-                alert("メッセージは50文字以内で入力してください。");
+                popup.alert("メッセージは50文字以内で入力してください。");
                 return;
             }
             try {
@@ -46,7 +48,7 @@ export const ChatPanel = ({
                 setChatInput("");
             } catch (error) {
                 console.error(error);
-                alert("メッセージの送信に失敗しました。通信環境を確認してください。");
+                popup.alert("メッセージの送信に失敗しました。通信環境を確認してください。");
             }
         }
     };
