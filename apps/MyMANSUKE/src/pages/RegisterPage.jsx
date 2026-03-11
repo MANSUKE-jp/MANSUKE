@@ -12,7 +12,7 @@ import { registerPasskey, isPasskeySupported, getPasskeyErrorMessage } from '../
 import ImageCropperModal from '../../../../shared/components/ImageCropperModal';
 import { uploadProfilePicture } from '../utils/storage';
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 12;
 
 // ── Step Progress Bar ──────────────────────────────────────────────────
 function StepBar({ current }) {
@@ -244,6 +244,7 @@ export default function RegisterPage() {
     const [password, setPassword] = useState('');
     const [password2, setPassword2] = useState('');
     const [nickname, setNickname] = useState('');
+    const [inviteCode, setInviteCode] = useState('');
     const [avatarBlob, setAvatarBlob] = useState(null);
     const [imageToCrop, setImageToCrop] = useState(null);
     const fileInputRef = useRef(null);
@@ -257,12 +258,14 @@ export default function RegisterPage() {
         clearErrors();
         switch (s) {
             case 1:
+                return true;
+            case 2:
                 if (!agreedTerms || !agreedPrivacy) {
                     setErrors(['MANSUKEの利用規約とプライバシーポリシーへの同意が必要です']);
                     return false;
                 }
                 return true;
-            case 2:
+            case 3:
                 if (!furiganaLast.trim() || !furiganaFirst.trim()) {
                     setErrors(['フリガナ（セイ・メイ）を入力してください']);
                     return false;
@@ -272,13 +275,13 @@ export default function RegisterPage() {
                     return false;
                 }
                 return true;
-            case 3:
+            case 4:
                 if (!birthday.year || !birthday.month || !birthday.day) {
                     setErrors(['生年月日を入力してください']);
                     return false;
                 }
                 return true;
-            case 4: {
+            case 5: {
                 if (!isEmailValid(email)) { setErrors(['有効なメールアドレスを入力してください']); return false; }
                 setSubmitting(true);
                 try {
@@ -289,7 +292,7 @@ export default function RegisterPage() {
                 finally { setSubmitting(false); }
                 return true;
             }
-            case 5: {
+            case 6: {
                 if (!isPhoneValid(phone)) { setErrors(['有効な電話番号を入力してください']); return false; }
                 setSubmitting(true);
                 try {
@@ -300,13 +303,13 @@ export default function RegisterPage() {
                 finally { setSubmitting(false); }
                 return true;
             }
-            case 6: {
+            case 7: {
                 const pwErrors = validatePassword(password);
                 if (pwErrors.length > 0) { setErrors(pwErrors); return false; }
                 if (password !== password2) { setErrors(['パスワードが一致しません']); return false; }
                 return true;
             }
-            case 7: {
+            case 8: {
                 const nnErrors = validateNickname(nickname);
                 if (nnErrors.length > 0) { setErrors(nnErrors); return false; }
                 return true;
@@ -427,6 +430,7 @@ export default function RegisterPage() {
                 password,
                 nickname,
                 linkGoogle: googleLinked,
+                inviteCode: inviteCode ? inviteCode.toUpperCase() : null,
             });
 
             const { customToken } = result.data;
@@ -454,17 +458,18 @@ export default function RegisterPage() {
     };
 
             const stepTitles = {
-                1: 'はじめまして！',
-                2: 'お名前を教えてください！:D',
-                3: '生年月日を教えていただけますか？',
-                4: 'メールアドレスをご入力ください。',
-                5: '電話番号のご入力もお願いします！',
-                6: 'ご希望のパスワードを入力してください。',
-                7: 'ニックネームを設定してください。',
-                8: 'プロフィール画像を設定しましょう',
-                9: 'Googleアカウントと連携することで、さらに便利にログインできます！',
-                10: 'パスキーの設定を行ってください。',
-                11: 'すべての設定が完了しました！'
+                1: '招待コードはお持ちですか？',
+                2: 'はじめまして！',
+                3: 'お名前を教えてください！:D',
+                4: '生年月日を教えていただけますか？',
+                5: 'メールアドレスをご入力ください。',
+                6: '電話番号のご入力もお願いします！',
+                7: 'ご希望のパスワードを入力してください。',
+                8: 'ニックネームを設定してください。',
+                9: 'プロフィール画像を設定しましょう',
+                10: 'Googleアカウントと連携することで、さらに便利にログインできます！',
+                11: 'パスキーの設定を行ってください。',
+                12: 'すべての設定が完了しました！'
             };
 
             return (
@@ -486,8 +491,31 @@ export default function RegisterPage() {
 
                         <div className="register-form-container page-enter" key={step}>
 
-                    {/* ── STEP 1: Terms ── */}
+                    {/* ── STEP 1: Invite Code ── */}
                     {step === 1 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
+                            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>
+                                MANSUKEから招待コードが届いている場合、入力してください。
+                            </p>
+                            <div className="input-group">
+                                <label className="input-label" htmlFor="invite-code">招待コード（任意）</label>
+                                <input
+                                    id="invite-code"
+                                    className="input-field"
+                                    type="text"
+                                    value={inviteCode}
+                                    onChange={e => {
+                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                        setInviteCode(val);
+                                    }}
+                                    placeholder="英数字のみ（例: CODE123）"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── STEP 2: Terms ── */}
+                    {step === 2 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-md)' }}>
                                 MANSUKEの規約とポリシーをお読みください。
@@ -523,8 +551,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 2: Name ── */}
-                    {step === 2 && (
+                    {/* ── STEP 3: Name ── */}
+                    {step === 3 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                                 <div className="input-group" style={{ flex: 1 }}>
@@ -553,15 +581,15 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 3: Birthday ── */}
-                    {step === 3 && (
+                    {/* ── STEP 4: Birthday ── */}
+                    {step === 4 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <DatePicker value={birthday} onChange={setBirthday} />
                         </div>
                     )}
 
-                    {/* ── STEP 4: Email ── */}
-                    {step === 4 && (
+                    {/* ── STEP 5: Email ── */}
+                    {step === 5 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="email-reg">
@@ -574,8 +602,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 5: Phone ── */}
-                    {step === 5 && (
+                    {/* ── STEP 6: Phone ── */}
+                    {step === 6 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="phone-reg">
@@ -588,8 +616,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 6: Password ── */}
-                    {step === 6 && (
+                    {/* ── STEP 7: Password ── */}
+                    {step === 7 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <div className="input-group">
                                 <label className="input-label" htmlFor="pw1">パスワード</label>
@@ -619,8 +647,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 7: Nickname ── */}
-                    {step === 7 && (
+                    {/* ── STEP 8: Nickname ── */}
+                    {step === 8 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <div style={{
                                 fontSize: 'var(--font-size-xs)', color: 'var(--text-muted)',
@@ -644,8 +672,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 8: Profile Picture ── */}
-                    {step === 8 && (
+                    {/* ── STEP 9: Profile Picture ── */}
+                    {step === 9 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)', alignItems: 'center' }}>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', width: '100%' }}>
                                 設定しない場合は、後からマイページで変更できます。
@@ -681,8 +709,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 9: Google Link ── */}
-                    {step === 9 && (
+                    {/* ── STEP 10: Google Link ── */}
+                    {step === 10 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                                 ご希望の場合は、以下のボタンを押してください。
@@ -711,8 +739,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 10: Passkey ── */}
-                    {step === 10 && (
+                    {/* ── STEP 11: Passkey ── */}
+                    {step === 11 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xl)' }}>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                                 アカウントのセキュリティを強化するため、ご登録時にパスキーのご登録をお願いしております。
@@ -752,8 +780,8 @@ export default function RegisterPage() {
                         </div>
                     )}
 
-                    {/* ── STEP 11: Done ── */}
-                    {step === 11 && (
+                    {/* ── STEP 12: Done ── */}
+                    {step === 12 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', textAlign: 'center' }}>
                             <div style={{ fontSize: 64, marginBottom: 'var(--spacing-md)' }}>✅</div>
                             <p style={{ fontSize: 'var(--font-size-base)', color: 'var(--text-secondary)' }}>
@@ -789,13 +817,13 @@ export default function RegisterPage() {
                         display: 'flex', gap: 'var(--spacing-md)',
                         marginTop: 'var(--spacing-xl)',
                     }}>
-                        {step > 1 && step < 11 && (
+                        {step > 1 && step < 12 && (
                             <button className="btn btn-ghost" style={{ flex: '0 0 auto' }} onClick={goBack}>
                                 <ChevronLeft size={18} />
                             </button>
                         )}
 
-                        {step < 10 && (
+                        {step < 12 && (
                             <button
                                 className="btn btn-primary btn-full"
                                 onClick={goNext}
@@ -805,18 +833,12 @@ export default function RegisterPage() {
                                 {submitting ? (
                                     <><div className="spinner" /> 確認中...</>
                                 ) : (
-                                    <>{(step === 9 && !googleLinked) || (step === 8 && !avatarBlob) ? 'スキップ' : '次へ'} <ChevronRight size={16} /></>
+                                    <>{(step === 10 && !googleLinked) || (step === 9 && !avatarBlob) || (step === 11 && !passkeyDone) ? 'スキップ' : '次へ'} <ChevronRight size={16} /></>
                                 )}
                             </button>
                         )}
 
-                        {step === 10 && passkeyDone && (
-                            <button className="btn btn-primary btn-full" onClick={goNext} style={{ flex: 1 }}>
-                                次へ <ChevronRight size={16} />
-                            </button>
-                        )}
-
-                        {step === 11 && (
+                        {step === 12 && (
                             <button
                                 className="btn btn-primary btn-full"
                                 onClick={handleFinalSubmit}

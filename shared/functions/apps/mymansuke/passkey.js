@@ -270,10 +270,6 @@ exports.deletePasskey = onCall(async (request) => {
 
     const filtered = passkeys.filter(pk => pk.id !== credentialId && pk.credentialID !== credentialId);
 
-    if (filtered.length === 0) {
-        throw new HttpsError('failed-precondition', '少なくとも1つのパスキーが必要です');
-    }
-
     await getDb().collection('users').doc(uid).update({
         passkeys: filtered,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),

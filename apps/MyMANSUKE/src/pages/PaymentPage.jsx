@@ -370,6 +370,7 @@ export default function PaymentPage() {
                     serviceName={payment.paymentConfig.serviceName}
                     balance={balance}
                     isLoading={payment.isProcessing}
+                    isSubscription={payment.paymentConfig.isSubscription}
                 />, 
                 document.body
             )}

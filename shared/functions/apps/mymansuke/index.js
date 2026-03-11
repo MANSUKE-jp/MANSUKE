@@ -14,7 +14,7 @@ if (admin.apps.length === 0) {
 const { checkEmailUnique, checkPhoneUnique, createAccount, changePassword, linkGoogle, unlinkGoogle, deleteUnlinkedGoogleUser } = require('./auth');
 const { registerPasskeyChallenge, verifyPasskeyRegistration, getPasskeyAuthChallenge, verifyPasskeyAuth, deletePasskey, renamePasskey } = require('./passkey');
 const { diditWebhook, createDiditSession } = require('./didit');
-const { updateEmail, updatePhone, updateNickname, updateAvatarUrl, deleteAvatarUrl } = require('./profile');
+const { updateEmail, updatePhone, updateNickname, updateAvatarUrl, deleteAvatarUrl, updateProfileFields } = require('./profile');
 const { verifyMansukeToken } = require('./tokenVerification');
 const { registerVpnDevice, deleteVpnDevice, deleteAllVpnDevices, getVpnConfig } = require('./vpn');
 const { processPayment, refundPayment, redeemCard, createSubscription, cancelSubscription, processSubscriptions } = require('../../payment.js');
@@ -46,6 +46,7 @@ module.exports = {
     mymansukeUpdateNickname: updateNickname,
     mymansukeUpdateAvatarUrl: updateAvatarUrl,
     mymansukeDeleteAvatarUrl: deleteAvatarUrl,
+    mymansukeUpdateProfileFields: updateProfileFields,
 
     // Redeem
     redeemCard,

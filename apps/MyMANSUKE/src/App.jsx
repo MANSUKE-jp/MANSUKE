@@ -89,34 +89,49 @@ function AppRoutes() {
     useChannelTalk(user, userData);
 
     return (
-        <Routes>
-            {/* Guest routes */}
-            <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
-            <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
+        <>
+            <div className="mobile-blocker">
+                <div style={{ textAlign: 'center', padding: '24px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱❌</div>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>このデバイスには対応していません</h2>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        MyMANSUKEは、スマートフォンなどの画面の小さいデバイスからのアクセスに対応していません。<br />
+                        恐れ入りますが、PCまたはタブレットからアクセスしてください。
+                    </p>
+                </div>
+            </div>
+            
+            <div className="desktop-app-container">
+                <Routes>
+                    {/* Guest routes */}
+                    <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />
+                    <Route path="/register" element={<GuestOnly><RegisterPage /></GuestOnly>} />
 
-            {/* Passkey verification (auth'd but passkey not yet done this session) */}
-            <Route path="/passkey-verify" element={<PasskeyVerify />} />
+                    {/* Passkey verification (auth'd but passkey not yet done this session) */}
+                    <Route path="/passkey-verify" element={<PasskeyVerify />} />
 
-            {/* SSO Handoff */}
-            <Route path="/sso" element={<RequireAuth><SsoRedirect /></RequireAuth>} />
+                    {/* SSO Handoff */}
+                    <Route path="/sso" element={<RequireAuth><SsoRedirect /></RequireAuth>} />
 
-            {/* Logout route */}
-            <Route path="/logout" element={<LogoutPage />} />
+                    {/* Logout route */}
+                    <Route path="/logout" element={<LogoutPage />} />
 
-            {/* Protected routes — wrapped in AppLayout (sidebar + content) */}
-            <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
-                <Route index element={<HomePage />} />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="security" element={<SecurityPage />} />
-                <Route path="redeem" element={<RedeemPage />} />
-                <Route path="payment" element={<PaymentPage />} />
-                <Route path="vpn" element={<VpnPage />} />
-                <Route path="others" element={<OthersPage />} />
-            </Route>
+                    {/* Protected routes — wrapped in AppLayout (sidebar + content) */}
+                    <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
+                        <Route index element={<HomePage />} />
+                        <Route path="profile" element={<ProfilePage />} />
+                        <Route path="security" element={<SecurityPage />} />
+                        <Route path="redeem" element={<RedeemPage />} />
+                        <Route path="payment" element={<PaymentPage />} />
+                        <Route path="vpn" element={<VpnPage />} />
+                        <Route path="others" element={<OthersPage />} />
+                    </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </div>
+        </>
     );
 }
 

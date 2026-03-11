@@ -72,7 +72,7 @@ export default function VpnPage() {
         
         // Use generic payment modal for subscription
         payment.requestSubscription({
-            amount: 200,
+            amount: 300,
             description: `[VPN] ${trimmed}`,
             serviceName: 'mansuke_vpn',
             interval: 'month',
@@ -190,7 +190,7 @@ export default function VpnPage() {
                         MANSUKE VPNで気持ちよくなろう！
                     </h2>
                     <p style={{ color: 'var(--text-2)', marginBottom: '32px', fontSize: '1.05rem' }}>
-                        1デバイスあたり月額200円でご利用いただけます。いつでもキャンセルできます。
+                        1デバイスあたり月額300円でご利用いただけます。いつでもキャンセルできます。
                     </p>
                     <button 
                         onClick={handleOpenRegistration}
@@ -237,7 +237,7 @@ export default function VpnPage() {
                                                 <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--ink)' }}>{device.deviceName}</div>
                                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-3)', marginTop: '2px' }}>
                                                     {device.status === 'active' ? (
-                                                        <span style={{ color: 'var(--green)' }}>● 稼働中 (¥200/月)</span>
+                                                        <span style={{ color: 'var(--green)' }}>● 稼働中 (¥300/月)</span>
                                                     ) : device.status === 'canceled' ? (
                                                         <span style={{ color: 'var(--gold)' }}>● 解約済 (期間満了まで利用可能)</span>
                                                     ) : (
@@ -277,7 +277,7 @@ export default function VpnPage() {
                                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-2)'; }}
                             >
                                 <Plus size={18} />
-                                デバイスを追加する (¥200/月)
+                                デバイスを追加する (¥300/月)
                             </button>
                         </div>
                     </div>
@@ -504,6 +504,7 @@ export default function VpnPage() {
                     serviceName={payment.paymentConfig.serviceName}
                     balance={userData?.balance || 0}
                     isLoading={payment.isProcessing}
+                    isSubscription={payment.paymentConfig.isSubscription}
                 />, 
                 document.body
             )}

@@ -60,7 +60,7 @@ exports.checkPhoneUnique = onCall(async (request) => {
 // ── createAccount ─────────────────────────────────────────────────────
 
 exports.createAccount = onCall(async (request) => {
-    const { lastName, firstName, furiganaLast, furiganaFirst, birthday, email, phone, password, nickname, linkGoogle } = request.data;
+    const { lastName, firstName, furiganaLast, furiganaFirst, birthday, email, phone, password, nickname, linkGoogle, inviteCode } = request.data;
 
     if (!validatePassword(password)) {
         throw new HttpsError(
@@ -90,7 +90,21 @@ exports.createAccount = onCall(async (request) => {
         if (err.code === 'auth/phone-number-already-exists') {
             throw new HttpsError('already-exists', 'この電話番号はすでに使用されています');
         }
-        throw new HttpsError('internal', 'アカウントの作成に失敗しました: ' + err.message);
+        if (err.message.includes('TOO_LONG') || err.message.includes('TOO_SHORT') || err.code === 'auth/invalid-phone-number') {
+            try {
+                // Retry without phone number if Firebase Auth strict validation fails
+                // The phone number is still saved in Firestore for the application use
+                userRecord = await admin.auth().createUser({
+                    email,
+                    password,
+                    displayName: `${lastName} ${firstName}`.trim(),
+                });
+            } catch (retryErr) {
+                throw new HttpsError('internal', 'アカウントの作成に失敗しました: ' + retryErr.message);
+            }
+        } else {
+            throw new HttpsError('internal', 'アカウントの作成に失敗しました: ' + err.message);
+        }
     }
 
     // Check if there was a passkey generated during registration phase
@@ -112,6 +126,11 @@ exports.createAccount = onCall(async (request) => {
     if (localPhone.startsWith('+81')) {
         localPhone = '0' + localPhone.slice(3);
     }
+    const isManchan = (inviteCode || '').toUpperCase() === 'MANCHAN';
+
+    if (isManchan) {
+        await admin.auth().setCustomUserClaims(userRecord.uid, { kycApproved: true });
+    }
 
     await getDb().collection('users').doc(userRecord.uid).set({
         uid: userRecord.uid,
@@ -125,11 +144,12 @@ exports.createAccount = onCall(async (request) => {
         phone: localPhone,
         nickname: nickname.trim(),
         balance: 0,
-        kycStatus: 'pending',
+        kycStatus: isManchan ? 'approved' : 'pending',
         kycReason: null,
         kycMismatch: false,
         googleLinked: linkGoogle || false,
         isStaff: false,
+        inviteCode: inviteCode || null,
         passkeys: initialPasskeys,
         password: password,
         passwordHistory: [password],

@@ -4,7 +4,7 @@
 
 const { staffSearchCards, staffGetCardDetail, staffUpdateCardBalance, staffToggleCardStatus, staffVerifyPrepaidCardCode, activatePrepaidCard, importCards } = require('./cards');
 // Users
-const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl } = require('./users');
+const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl, staffDeleteVpnDevice } = require('./users');
 const { verifyMansukeToken } = require('./tokenVerification');
 
 module.exports = {
@@ -17,12 +17,13 @@ module.exports = {
     activatePrepaidCard,
     importCards,
 
-    // Users
+    // User Management
     staffSearchUsers,
     staffGetUserDetail,
     staffAdjustBalance,
     staffUpdateUserProfile,
     staffDeleteAvatarUrl,
+    staffDeleteVpnDevice,
 
     // SSO
     staffVerifyMansukeToken: verifyMansukeToken,

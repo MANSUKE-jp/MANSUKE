@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, Loader2, Edit3, Key, DollarSign, Save,
-    User, Mail, Phone, Calendar, Shield, Hash, Clock, X, ShoppingBag,
+    User, Mail, Phone, Calendar, Shield, Hash, Clock, X, ShoppingBag, Server, Trash2
 } from 'lucide-react';
 import { callFunction } from '../firebase';
 
@@ -89,6 +89,7 @@ const UserDetailPage = () => {
     const tabs = [
         { id: 'info', label: '個人情報' },
         { id: 'balance', label: '残高と取引履歴' },
+        { id: 'vpn', label: 'VPN接続' },
         { id: 'edit', label: 'プロフィール編集' },
     ];
 
@@ -357,6 +358,78 @@ const UserDetailPage = () => {
                                 <div className="empty-state-text">取引履歴がありません</div>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Tab: VPN Devices */}
+            {tab === 'vpn' && (
+                <div>
+                    <div className="section-card" style={{ marginBottom: 24 }}>
+                        <div className="section-header"><Server size={16} /> 設定済みVPNデバイス</div>
+                        <div className="section-body" style={{ padding: 0 }}>
+                            {(!d.vpnDevices || d.vpnDevices.length === 0) ? (
+                                <div className="empty-state" style={{ padding: 40 }}>
+                                    <div className="empty-state-icon"><Server size={40} style={{ opacity: 0.3 }} /></div>
+                                    <div className="empty-state-text">VPNデバイスは登録されていません</div>
+                                </div>
+                            ) : (
+                                <div>
+                                    {d.vpnDevices.map((device, i) => (
+                                        <div key={device.id} style={{
+                                            padding: '16px 24px', borderBottom: i < d.vpnDevices.length - 1 ? '1px solid var(--border)' : 'none',
+                                            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
+                                        }}>
+                                            <div style={{ flex: 1, minWidth: 200 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                    <span style={{ fontWeight: 700, fontSize: 'var(--md)', color: 'var(--ink)' }}>{device.deviceName}</span>
+                                                    <span className={`badge ${device.status === 'active' ? 'badge-active' : 'badge-disabled'}`}>
+                                                        {device.status === 'active' ? '利用中' : '解約済み / 停止中'}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', fontFamily: "monospace", marginBottom: 2 }}>ID: {device.id}</div>
+                                                <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)', fontFamily: "monospace", marginBottom: 2 }}>Sub: {device.subscriptionId || '—'}</div>
+                                                <div style={{ fontSize: 'var(--xs)', color: 'var(--text-3)' }}>作成日: {formatDate(device.createdAt)}</div>
+                                            </div>
+                                            {device.status === 'active' && (
+                                                <div style={{ display: 'flex', gap: 8 }}>
+                                                    <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)' }}
+                                                        onClick={async () => {
+                                                            if (window.confirm(`${device.deviceName} を現在の契約期間満了後に解約しますか？`)) {
+                                                                setSaving(true); setError('');
+                                                                try {
+                                                                    const fn = callFunction('staffDeleteVpnDevice');
+                                                                    await fn({ uid, deviceId: device.id, immediate: false });
+                                                                    await fetchDetail();
+                                                                } catch (err) { setError(err.message); }
+                                                                finally { setSaving(false); }
+                                                            }
+                                                        }}
+                                                        disabled={saving}>
+                                                        期間満了後解約
+                                                    </button>
+                                                    <button className="btn btn-sm btn-ghost" style={{ color: 'var(--red)', background: 'var(--red-bg)' }}
+                                                        onClick={async () => {
+                                                            if (window.confirm(`【警告】${device.deviceName} を即時解約し、完全に削除します。返金は行われません。よろしいですか？`)) {
+                                                                setSaving(true); setError('');
+                                                                try {
+                                                                    const fn = callFunction('staffDeleteVpnDevice');
+                                                                    await fn({ uid, deviceId: device.id, immediate: true });
+                                                                    await fetchDetail();
+                                                                } catch (err) { setError(err.message); }
+                                                                finally { setSaving(false); }
+                                                            }
+                                                        }}
+                                                        disabled={saving}>
+                                                        <Trash2 size={14} /> 即時解約
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

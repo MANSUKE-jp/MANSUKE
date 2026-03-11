@@ -7,7 +7,7 @@ import { auth, callFunction } from '../firebase';
 import { authenticatePasskey, isPasskeySupported, getPasskeyErrorMessage } from '../utils/passkey';
 
 export default function PasskeyVerify() {
-    const { user, setPasskeyVerified } = useAuth();
+    const { user, userData, setPasskeyVerified } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const redirectTo = location.state?.redirect || '/';
@@ -21,9 +21,37 @@ export default function PasskeyVerify() {
         }
     };
 
-    const [status, setStatus] = useState('idle'); // idle | loading | error
+    const [status, setStatus] = useState('loading-context'); // idle | loading | error | loading-context
     const [error, setError] = useState('');
     const [supported, setSupported] = useState(null); // null = checking
+
+    useEffect(() => {
+        if (!user || userData === null) return;
+        const passkeys = userData.passkeys || [];
+        if (passkeys.length === 0) {
+            const skipVerification = async () => {
+                setPasskeyVerified(true);
+                const token = await user.getIdToken();
+                const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                const domainStr = isLocalhost ? '' : 'domain=.mansuke.jp;';
+                document.cookie = `__session=${token}; ${domainStr} path=/; max-age=3600; secure; samesite=lax`;
+
+                if (redirectTo.startsWith('http')) {
+                    try {
+                        const urlObj = new URL(redirectTo);
+                        if (urlObj.hostname.endsWith('.mansuke.jp') || urlObj.hostname.endsWith('.web.app') || urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
+                            window.location.href = redirectTo;
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                navigate(redirectTo, { replace: true });
+            };
+            skipVerification();
+        } else {
+            if (status === 'loading-context') setStatus('idle');
+        }
+    }, [userData, user, redirectTo, navigate, setPasskeyVerified, status]);
 
     useEffect(() => {
         let cancelled = false;
@@ -149,9 +177,9 @@ export default function PasskeyVerify() {
                     <button
                         className="btn btn-primary btn-full"
                         onClick={handleVerify}
-                        disabled={status === 'loading' || supported !== true}
+                        disabled={status === 'loading' || status === 'loading-context' || supported !== true}
                     >
-                        {status === 'loading' ? (
+                        {status === 'loading' || status === 'loading-context' ? (
                             <><div className="spinner" /> 確認中...</>
                         ) : (
                             <>パスキーで確認する <ArrowRight size={16} /></>

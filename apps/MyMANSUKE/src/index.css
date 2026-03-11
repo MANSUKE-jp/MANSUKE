@@ -1279,3 +1279,24 @@ a {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
 }
+/* Mobile Blocker */
+.mobile-blocker {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vw; height: 100vh;
+    background: var(--bg-body);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .mobile-blocker {
+        display: flex;
+    }
+    .desktop-app-container {
+        display: none !important;
+    }
+}

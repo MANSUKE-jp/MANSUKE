@@ -30,8 +30,8 @@ async function requireStaff(request) {
 exports.staffSearchUsers = onCall(async (request) => {
     await requireStaff(request);
     const { query } = request.data;
-    if (!query || typeof query !== 'string' || query.trim().length < 2) {
-        throw new HttpsError('invalid-argument', '2文字以上の検索クエリが必要です');
+    if (!query || typeof query !== 'string' || query.trim().length < 1) {
+        throw new HttpsError('invalid-argument', '1文字以上の検索クエリが必要です');
     }
 
     const q = query.trim().toLowerCase();
@@ -143,6 +143,18 @@ exports.staffGetUserDetail = onCall(async (request) => {
             logger.warn('Failed to fetch orders (may not have index)', err.message);
         }
 
+        // Fetch VPN devices
+        let vpnDevices = [];
+        try {
+            const vpnSnap = await getUsersDb().collection('users').doc(uid)
+                .collection('vpn')
+                .orderBy('createdAt', 'desc')
+                .get();
+            vpnDevices = vpnSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (err) {
+            logger.warn('Failed to fetch VPN devices', err.message);
+        }
+
         // Remove sensitive fields (but keep password so staff can view/edit it)
         const { passkeys, ...safeData } = data;
 
@@ -151,6 +163,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
             uid,
             transactions,
             orders,
+            vpnDevices,
         };
     } catch (err) {
         if (err instanceof HttpsError) throw err;
@@ -265,6 +278,7 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
             if (!validStatus.includes(value)) throw new HttpsError('invalid-argument', '無効なKYCステータスです');
             await userRef.update({ kycStatus: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
             
+            const userRecord = await admin.auth().getUser(uid);
             const currentClaims = userRecord.customClaims || {};
             if (value === 'approved') {
                 currentClaims.kycApproved = true;
@@ -334,4 +348,74 @@ exports.staffDeleteAvatarUrl = onCall(async (request) => {
     });
 
     return { success: true };
+});
+
+// ── staffDeleteVpnDevice ──────────────────────────────────────────────
+exports.staffDeleteVpnDevice = onCall(async (request) => {
+    await requireStaff(request);
+    const { uid, deviceId, immediate } = request.data;
+    if (!uid || !deviceId) throw new HttpsError('invalid-argument', 'UIDとデバイスIDが必要です');
+
+    try {
+        const userRef = getUsersDb().collection('users').doc(uid);
+        const vpnRef = userRef.collection('vpn').doc(deviceId);
+        const vpnDoc = await vpnRef.get();
+        if (!vpnDoc.exists) throw new HttpsError('not-found', 'VPNデバイスが見つかりません');
+
+        const vpnData = vpnDoc.data();
+
+        // Step 1: Cancel subscription (always attempt to cancel the subscription)
+        if (vpnData.subscriptionId) {
+            const { internalCancelSubscription } = require('../../payment.js');
+            try {
+                await internalCancelSubscription(uid, vpnData.subscriptionId);
+            } catch (cancelError) {
+                logger.warn("Subscription cancellation warning (staff):", cancelError.message);
+            }
+        }
+
+        if (immediate) {
+            // Immediate deletion: remove from wg-easy and delete firestore document
+            const axios = require('axios');
+            const WG_HOST = 'vpn.mansuke.jp';
+            const WG_PORT = '80';
+            const WG_PASSWORD = 'mansuke_wg_api_pass_2026';
+            const WG_API_URL = `http://${WG_HOST}:${WG_PORT}/api`;
+
+            try {
+                // Auth with wg-easy
+                const response = await axios.post(`${WG_API_URL}/session`, { password: WG_PASSWORD }, { timeout: 8000 });
+                const cookies = response.headers['set-cookie'];
+                if (cookies && cookies.length > 0) {
+                    const cookie = cookies[0].split(';')[0];
+                    // Delete from wg-easy
+                    await axios.delete(`${WG_API_URL}/wireguard/client/${vpnData.wgClientId}`, {
+                        headers: { 'Cookie': cookie },
+                        timeout: 8000
+                    });
+                }
+            } catch (wgError) {
+                logger.error("Failed to delete client from wg-easy (staff):", wgError.message);
+                // We'll throw an error if this was requested to be immediate, 
+                // because we can't guarantee connection drop without deleting it from wg-easy.
+                throw new HttpsError('internal', 'VPNサーバーからのデバイス削除に失敗しました (wg-easy APIエラー)');
+            }
+
+            // After successful wg-easy deletion, delete the Firestore doc entirely
+            await vpnRef.delete();
+            return { success: true, message: "デバイスを即時解約し、完全に削除しました。" };
+            
+        } else {
+            // Period-end cancellation: just mark as canceled
+            await vpnRef.update({
+                status: 'canceled',
+                canceledAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            return { success: true, message: "解約を受け付けました。現在の契約期間満了後にVPNが停止されます。" };
+        }
+    } catch (err) {
+        if (err instanceof HttpsError) throw err;
+        logger.error('staffDeleteVpnDevice error', err);
+        throw new HttpsError('internal', 'VPNデバイスの削除に失敗しました: ' + err.message);
+    }
 });

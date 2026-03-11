@@ -129,6 +129,45 @@ exports.updateNickname = onCall(async (request) => {
     return { success: true };
 });
 
+// ── updateProfileFields ───────────────────────────────────────────────
+
+exports.updateProfileFields = onCall(async (request) => {
+    requireAuth(request);
+    const uid = request.auth.uid;
+    const { field, value } = request.data;
+
+    const allowedFields = ['lastName', 'firstName', 'furiganaLast', 'furiganaFirst', 'birthday'];
+    if (!allowedFields.includes(field)) {
+        throw new HttpsError('invalid-argument', 'このフィールドは変更できません');
+    }
+
+    if (!value || typeof value !== 'string' || value.trim().length === 0) {
+        throw new HttpsError('invalid-argument', '有効な値を入力してください');
+    }
+
+    const cleanValue = value.trim();
+
+    try {
+        const userRef = getDb().collection('users').doc(uid);
+        await userRef.update({
+            [field]: cleanValue,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Update Auth displayName if names change
+        if (field === 'lastName' || field === 'firstName') {
+            const freshData = (await userRef.get()).data();
+            const displayName = `${freshData.lastName || ''} ${freshData.firstName || ''}`.trim();
+            await admin.auth().updateUser(uid, { displayName });
+            await userRef.update({ displayName });
+        }
+
+        return { success: true };
+    } catch (err) {
+        throw new HttpsError('internal', 'プロフィール情報の更新に失敗しました: ' + err.message);
+    }
+});
+
 // ── updateAvatarUrl
 
 exports.updateAvatarUrl = onCall(async (request) => {

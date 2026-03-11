@@ -85,8 +85,8 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
     const wgClientName = `${safeDeviceName.substring(0, 15)}_${uid.substring(0, 4)}_${randomSuffix}`;
 
     try {
-        // Step 1: Create a subscription (₹200/month) using direct function call
-        const subResult = await internalCreateSubscription(uid, 200, 'mansuke_vpn', `[VPN] ${deviceName}`, 'month');
+        // Step 1: Create a subscription (₹300/month) using direct function call
+        const subResult = await internalCreateSubscription(uid, 300, 'mansuke_vpn', `[VPN] ${deviceName}`, 'month');
         const subId = subResult.subId;
         
         try {

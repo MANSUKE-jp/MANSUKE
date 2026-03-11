@@ -8,6 +8,17 @@
                 "**/.*",
                 "**/node_modules/**"
             ],
+            "headers": [
+                {
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
+            ],
             "rewrites": [
                 {
                     "source": "/api/verifyMansukeToken",
@@ -26,6 +37,17 @@
                 "firebase.json",
                 "**/.*",
                 "**/node_modules/**"
+            ],
+            "headers": [
+                {
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
             ],
             "rewrites": [
                 {
@@ -47,6 +69,17 @@
                 "**/.*",
                 "**/node_modules/**"
             ],
+            "headers": [
+                {
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
+            ],
             "rewrites": [
                 {
                     "source": "**",
@@ -61,6 +94,17 @@
                 "firebase.json",
                 "**/.*",
                 "**/node_modules/**"
+            ],
+            "headers": [
+                {
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
             ],
             "rewrites": [
                 {

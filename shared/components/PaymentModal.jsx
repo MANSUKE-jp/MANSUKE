@@ -10,7 +10,8 @@ export const PaymentModal = ({
     description,
     serviceName,
     balance = 0,
-    isLoading = false
+    isLoading = false,
+    isSubscription = false
 }) => {
     // If modal is closed, don't render content (but keep AnimatePresence wrapper for exit animations)
     const isHirusupa = serviceName === 'HIRUSUPA';
@@ -78,7 +79,7 @@ export const PaymentModal = ({
                         <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '24px', marginBottom: 24, border: '1px solid #f1f5f9' }}>
                             <div style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: 8 }}>お支払い金額</div>
                             <div style={{ fontSize: 36, fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
-                                {isHirusupa ? '未確定' : `¥${amount.toLocaleString()}`}
+                                {isHirusupa ? '未確定' : `${isSubscription ? '毎月' : ''}¥${amount.toLocaleString()}`}
                             </div>
                             <div style={{ marginTop: 16, fontSize: '14px', fontWeight: 600, color: '#475569' }}>
                                 {description}
