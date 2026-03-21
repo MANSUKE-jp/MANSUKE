@@ -8,7 +8,7 @@ const db = getFirestore("users");
 const ordersDb = getFirestore("orders");
 const prepaidDb = getFirestore('prepaid-card');
 
-// Helper function to get authenticated UID from request (supports frontend auth & mansuke token)
+// フロント認証とMANSUKEトークン認証の両方に対応した認証UID取得ヘルパー関数
 async function getAuthenticatedUid(request) {
     if (request.auth && request.auth.uid) {
         return request.auth.uid;
@@ -22,7 +22,7 @@ async function getAuthenticatedUid(request) {
                 return decodedToken.uid;
             }
         } catch (error) {
-            console.error("Token verification failed natively. Checking via API...", error.message);
+            console.error("Firebaseによるトークン検証失敗。APIによる検証を試みます...", error.message);
             const axios = require("axios");
             try {
                 const response = await axios.get('https://my.mansuke.jp/api/verifyMansukeToken', {
@@ -57,7 +57,7 @@ async function createUniqueTempOrder(ordersDb, orderData) {
             });
             return { transactionId, orderRef };
         } catch (error) {
-            if (error.code === 6) { // ALREADY_EXISTS code
+            if (error.code === 6) { // ALREADY_EXISTS エラーコード
                 continue;
             }
             console.error("Error creating temp order:", error);
@@ -66,22 +66,19 @@ async function createUniqueTempOrder(ordersDb, orderData) {
     }
 }
 
-/**
- * 料金を支払い、レシート(Receipt)を発行する関数。
- * フロントエンドから決済モーダル経由で呼ばれる。
- */
+// 料金を支払い、レシートを発行する関数。
+// フロントエンドから決済モーダル経由で呼ばれる。
 exports.processPayment = onCall(async (request) => {
     try {
         const uid = await getAuthenticatedUid(request);
         let { amount, serviceId, description } = request.data;
 
-        // ==== Security Update: Enforce Server-Side Amount ====
-        // 決済金額はクライアントから送信された値ではなく、サーバー側で定義された金額を強制する
+        // セキュリティ上、サーバー側で決済金額を強制する（クライアントの値は使用しない）
+        // サービスごとに金額と説明を上書き設定する
         if (serviceId === 'hirusupa_gemini') {
             amount = 5;
             description = "ラジオネーム生成（AI）";
         }
-        // =====================================================
 
         if (!amount || amount <= 0 || !Number.isInteger(amount)) {
             throw new HttpsError('invalid-argument', '不正な金額です。');
@@ -153,8 +150,8 @@ exports.processPayment = onCall(async (request) => {
                     description,
                     used: false,
                     createdAt: FieldValue.serverTimestamp(),
-                    transactionId: transactionId, // The local history ID
-                    globalTransactionId: generatedTransactionId // order ID replacement
+                    transactionId: transactionId, // ローカル取引履歴ID
+                    globalTransactionId: generatedTransactionId // 注文IDの代替
                 });
             });
 
@@ -174,7 +171,7 @@ exports.processPayment = onCall(async (request) => {
                     status: 'failed',
                     error: e.message || 'Unknown error',
                     updatedAt: FieldValue.serverTimestamp()
-                }).catch(err => console.error("Failed to update order status to failed:", err));
+                }).catch(err => console.error("注文ステータスの失敗更新に失敗:", err));
             }
 
 
@@ -193,13 +190,9 @@ exports.processPayment = onCall(async (request) => {
     }
 });
 
-/**
- * 発行済みのレシートをキャンセルし、返金する関数。
- * 各サービスのバックエンドで処理が失敗した時のみ呼ばれる想定。
- * （※基本的にはフロント側から勝手に呼べないようにしたいが、ユーザー自信のレシートならキャンセル可能にしても良い。
- * ただし今回はサービス間連携のため、フロントからでも呼べるようにしておくか、Admin SDKでのみ呼べるようにする。
- * レシートが used: false の場合のみ返金可能。）
- */
+// 発行済みのレシートをキャンセルし返金する関数。
+// 各サービスのバックエンドで処理が失敗した時のみ呼ばれる想定。
+// レシートが used:false の場合のみ返金可能。
 exports.refundPayment = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { receiptId } = request.data;
@@ -267,7 +260,7 @@ exports.refundPayment = onCall(async (request) => {
                     refundedAt: FieldValue.serverTimestamp()
                 });
             } else if (receiptData && receiptData.orderId) {
-                // fallback for older records
+                // 古いレコードへのフォールバック
                 const orderRef = ordersDb.collection('orders').doc(receiptData.orderId);
                 await orderRef.update({
                     status: 'refunded',
@@ -286,14 +279,12 @@ exports.refundPayment = onCall(async (request) => {
     }
 });
 
-/**
- * Handles MANSUKE PREPAID CARD redemption.
- */
+// MANSUKE プリペイドカード引き換え処理
 exports.redeemCard = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { pinCode, userPin } = request.data;
 
-    // Validate inputs
+    // 入力値のバリデーション
     if (!pinCode || typeof pinCode !== 'string' || pinCode.length !== 10) {
         throw new HttpsError('invalid-argument', 'PINコードは10桁で入力してください');
     }
@@ -301,7 +292,7 @@ exports.redeemCard = onCall(async (request) => {
         throw new HttpsError('invalid-argument', '暗証番号は4桁の数字で入力してください');
     }
 
-    // Look up card in "prepaid-card" database
+    // prepaid-card データベースでカードを検索する
     let cardSnap;
     try {
         cardSnap = await prepaidDb.collection('cards')
@@ -320,7 +311,7 @@ exports.redeemCard = onCall(async (request) => {
     const cardDoc = cardSnap.docs[0];
     const card = cardDoc.data();
 
-    // Verify status
+    // ステータスの検証
     if (card.status !== 'active') {
         if (card.status === 'inactive') {
             throw new HttpsError('failed-precondition', 'このカードはまだ利用できません');
@@ -328,21 +319,21 @@ exports.redeemCard = onCall(async (request) => {
         throw new HttpsError('failed-precondition', 'このカードはすでに使用済みです');
     }
 
-    // Verify userPin
+    // 暗証番号の検証
     if (card.userPin !== userPin) {
         throw new HttpsError('permission-denied', '暗証番号が正しくありません');
     }
-    // Perform atomic check and update
+    // アトミックなチェックと更新を実行
     try {
         const { amount, transactionId: generatedTransactionId } = await db.runTransaction(async (t) => {
-            // Read card doc
+            // カードドキュメントを読み込む
             const tCardSnap = await t.get(cardDoc.ref);
             if (!tCardSnap.exists) {
                 throw new HttpsError('not-found', 'カードが見つかりません');
             }
             const tCard = tCardSnap.data();
 
-            // Status check again inside transaction
+            // トランザクション内でもステータスを再確認する
             if (tCard.status !== 'active') {
                 if (tCard.status === 'inactive') {
                     throw new HttpsError('failed-precondition', 'このカードはまだ利用できません');
@@ -355,7 +346,7 @@ exports.redeemCard = onCall(async (request) => {
                 throw new HttpsError('internal', 'カードの金額が無効です');
             }
 
-            // Create global transaction ID order
+            // グローバルトランザクションIDの注文を生成する
             const { transactionId: generatedTransactionId, orderRef } = await createUniqueTempOrder(ordersDb, {
                 userId: uid,
                 amount: amount,
@@ -373,13 +364,13 @@ exports.redeemCard = onCall(async (request) => {
             const currentBalance = userSnap.data()?.balance || 0;
             const transactionId = `prepaid_${cardDoc.id}_${Date.now()}`;
 
-            // Update user balance
+            // ユーザー残高を更新する
             t.update(userRef, {
                 balance: FieldValue.increment(amount),
                 updatedAt: FieldValue.serverTimestamp(),
             });
 
-            // Record transaction
+            // 取引履歴を記録する
             t.set(userRef.collection('transactions').doc(transactionId), {
                 id: transactionId,
                 type: 'prepaid_card',
@@ -391,14 +382,14 @@ exports.redeemCard = onCall(async (request) => {
                 createdAt: FieldValue.serverTimestamp(),
             });
 
-            // Mark card as redeemed
+            // カードを引き換え済みとしてマークする
             t.update(cardDoc.ref, {
                 status: 'redeemed',
                 redeemedBy: uid,
                 redeemedAt: FieldValue.serverTimestamp(),
             });
 
-            // Update order status
+            // 注文ステータスを完了にする
             t.update(orderRef, {
                 status: 'completed',
                 updatedAt: FieldValue.serverTimestamp()
@@ -419,7 +410,7 @@ exports.redeemCard = onCall(async (request) => {
 exports.createUniqueTransactionId = createUniqueTempOrder; // Export so staff adjust can use it
 
 async function internalCreateSubscription(uid, amount, serviceId, description, interval = 'month') {
-    // Security Update: Enforce Server-Side Amount if needed
+    // 必要に応じてサーバー側で決済金額を強制する
     if (serviceId === 'hirusupa_gemini') {
         amount = 5;
     }
@@ -525,7 +516,7 @@ async function internalCreateSubscription(uid, amount, serviceId, description, i
             status: 'failed',
             error: e.message,
             updatedAt: FieldValue.serverTimestamp()
-        }).catch(err => console.error("Failed to update order status to failed:", err));
+        }).catch(err => console.error("注文ステータスの失敗更新に失敗:", err));
 
         if (e instanceof HttpsError) throw e;
         console.error("Subscription Error:", e);
@@ -533,9 +524,7 @@ async function internalCreateSubscription(uid, amount, serviceId, description, i
     }
 }
 
-/**
- * サブスクリプションを作成し、初回の決済を行う
- */
+// サブスクリプションを作成し、初回の決済を行う
 exports.createSubscription = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     let { amount, serviceId, description, interval = 'month' } = request.data;
@@ -573,19 +562,15 @@ async function internalCancelSubscription(uid, subId) {
     }
 }
 
-/**
- * サブスクリプションをキャンセルする
- */
+// サブスクリプションをキャンセルする
 exports.cancelSubscription = onCall(async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { subId } = request.data;
     return await internalCancelSubscription(uid, subId);
 });
 
-/**
- * 定期的にサブスクリプションの決済を行うスケジュール関数
- * 毎時間実行し、nextBillingDate が過ぎている active なサブスクリプションを処理。
- */
+// 定期的にサブスクリプションの決済を行うスケジュール関数
+// 毎時間実行し、nextBillingDate が過ぎている active なサブスクリプションを処理する。
 exports.processSubscriptions = onSchedule({ schedule: "every 1 hours" }, async (event) => {
     const nowTimestamp = admin.firestore.Timestamp.now();
     

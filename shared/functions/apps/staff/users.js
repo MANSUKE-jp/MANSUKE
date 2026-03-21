@@ -1,6 +1,4 @@
-/**
- * functions/users.js — Staff-only user management Cloud Functions
- */
+// functions/users.js — スタッフ専用ユーザー管理Cloud Functions
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
@@ -25,8 +23,8 @@ async function requireStaff(request) {
 
 // ── staffSearchUsers ─────────────────────────────────────────────────
 // Fetch all users and filter client-side for partial match on name/email/phone/uid
-// Note: Firestore doesn't natively support partial text search.
-// For production at scale, consider Algolia/Typesense or denormalized indexes.
+// 注意: Firestoreはネイティブの部分テキスト検索をサポートしない。
+// 本番環境では、Algolia/Typesenseまたは非正規化インデックスの利用を検討すること。
 exports.staffSearchUsers = onCall(async (request) => {
     await requireStaff(request);
     const { query } = request.data;
@@ -37,10 +35,10 @@ exports.staffSearchUsers = onCall(async (request) => {
     const q = query.trim().toLowerCase();
 
     try {
-        // Attempt targeted searches first
+        // まずターゲット検索を試みる
         const results = new Map();
 
-        // Search by email prefix
+        // メールアドレスの前方一致検索
         const emailSnap = await getUsersDb().collection('users')
             .where('email', '>=', q)
             .where('email', '<=', q + '\uf8ff')
@@ -48,7 +46,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         emailSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Search by phone prefix
+        // 電話番号の前方一致検索
         const phoneSnap = await getUsersDb().collection('users')
             .where('phone', '>=', q)
             .where('phone', '<=', q + '\uf8ff')
@@ -56,7 +54,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         phoneSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Search by UID prefix
+        // UIDの前方一致検索
         const uidSnap = await getUsersDb().collection('users')
             .where('uid', '>=', q)
             .where('uid', '<=', q + '\uf8ff')
@@ -64,7 +62,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         uidSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Search by lastName prefix
+        // 姓（lastName）の前方一致検索
         const lnSnap = await getUsersDb().collection('users')
             .where('lastName', '>=', q)
             .where('lastName', '<=', q + '\uf8ff')
@@ -72,7 +70,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         lnSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Search by firstName prefix
+        // 名（firstName）の前方一致検索
         const fnSnap = await getUsersDb().collection('users')
             .where('firstName', '>=', q)
             .where('firstName', '<=', q + '\uf8ff')
@@ -80,7 +78,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         fnSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Search by nickname prefix
+        // ニックネームの前方一致検索
         const nnSnap = await getUsersDb().collection('users')
             .where('nickname', '>=', q)
             .where('nickname', '<=', q + '\uf8ff')
@@ -88,7 +86,7 @@ exports.staffSearchUsers = onCall(async (request) => {
             .get();
         nnSnap.docs.forEach(d => results.set(d.id, { uid: d.id, ...d.data() }));
 
-        // Sanitize output (remove sensitive fields like password)
+        // 出力をサニタイズする（パスワードなどの機密情報を除去）
         const users = Array.from(results.values()).map(u => ({
             uid: u.uid,
             lastName: u.lastName || '',
@@ -122,7 +120,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
 
         const data = userDoc.data();
 
-        // Fetch transactions
+        // 取引履歴を取得する
         const txSnap = await getUsersDb().collection('users').doc(uid)
             .collection('transactions')
             .orderBy('createdAt', 'desc')
@@ -130,7 +128,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
             .get();
         const transactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Fetch orders from orders database
+        // ordersデータベースから注文を取得する
         let orders = [];
         try {
             const orderSnap = await getOrdersDb().collection('orders')
@@ -143,7 +141,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
             logger.warn('Failed to fetch orders (may not have index)', err.message);
         }
 
-        // Fetch VPN devices
+        // VPNデバイスを取得する
         let vpnDevices = [];
         try {
             const vpnSnap = await getUsersDb().collection('users').doc(uid)
@@ -152,7 +150,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
                 .get();
             vpnDevices = vpnSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-            // Augment active VPN devices with wg-easy stats
+            // アクティブなVPNデバイスにwg-easyの統計を追加する
             const activeWGClients = vpnDevices.filter(d => d.status === 'active' && d.wgClientId);
             if (activeWGClients.length > 0) {
                 const axios = require('axios');
@@ -196,7 +194,7 @@ exports.staffGetUserDetail = onCall(async (request) => {
             logger.warn('Failed to fetch VPN devices', err.message);
         }
 
-        // Remove sensitive fields (but keep password so staff can view/edit it)
+        // 機密フィールドを除去する（スタッフが閲覧/編集できるようパスワードは残す）
         const { passkeys, ...safeData } = data;
 
         return {
@@ -229,13 +227,13 @@ exports.staffAdjustBalance = onCall(async (request) => {
         const currentBalance = userDoc.data().balance || 0;
         if (currentBalance + amount < 0) throw new HttpsError('failed-precondition', '残高が不足しています');
 
-        // Update balance
+        // 残高を更新する
         await userRef.update({
             balance: admin.firestore.FieldValue.increment(amount),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Create global transaction ID order
+        // グローバルトランザクションIDの注文を作成する
         const { transactionId: generatedTransactionId } = await createUniqueTransactionId(getOrdersDb(), {
             userId: uid,
             amount: amount,
@@ -243,7 +241,7 @@ exports.staffAdjustBalance = onCall(async (request) => {
             description: memo || 'MANSUKEサポートによる残高調整'
         });
 
-        // Record transaction
+        // 取引履歴を記録する
         const txId = `staff_adj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await userRef.collection('transactions').doc(txId).set({
             id: txId,
@@ -256,7 +254,7 @@ exports.staffAdjustBalance = onCall(async (request) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // mark order as completed
+        // 注文を完了にする
         await getOrdersDb().collection('orders').doc(generatedTransactionId).update({
             status: 'completed',
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -286,7 +284,7 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
         const userDoc = await userRef.get();
         if (!userDoc.exists) throw new HttpsError('not-found', 'ユーザーが見つかりません');
 
-        // Handle Auth-related updates
+        // Auth連動項目の更新処理
         if (field === 'email') {
             if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
                 throw new HttpsError('invalid-argument', '有効なメールアドレスを入力してください');
@@ -334,9 +332,9 @@ exports.staffUpdateUserProfile = onCall(async (request) => {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp() 
             });
         } else {
-            // lastName, firstName, furiganaLast, furiganaFirst, birthday
+            // lastName、firstName、furiganaLast、furiganaFirst、birthday
             await userRef.update({ [field]: value, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-            // Update displayName if name changed
+            // 名前変更時はdisplayNameを更新する
             if (field === 'lastName' || field === 'firstName') {
                 const freshData = (await userRef.get()).data();
                 const displayName = `${freshData.lastName || ''} ${freshData.firstName || ''}`.trim();
@@ -379,7 +377,7 @@ exports.staffDeleteAvatarUrl = onCall(async (request) => {
                 }
             }
         } catch (e) {
-            logger.error("Failed to delete avatar from storage:", e);
+            logger.error("ストレージからのアバター削除失敗:", e);
         }
     }
 
@@ -405,7 +403,7 @@ exports.staffDeleteVpnDevice = onCall(async (request) => {
 
         const vpnData = vpnDoc.data();
 
-        // Step 1: Cancel subscription (always attempt to cancel the subscription)
+        // ステップ1: サブスクリプションをキャンセルする（常にキャンセルを試みる）
         if (vpnData.subscriptionId) {
             const { internalCancelSubscription } = require('../../payment.js');
             try {
@@ -416,7 +414,7 @@ exports.staffDeleteVpnDevice = onCall(async (request) => {
         }
 
         if (immediate) {
-            // Immediate deletion: remove from wg-easy and delete firestore document
+            // 即時削除: wg-easyから削除し、Firestoreドキュメントも削除する
             const axios = require('axios');
             const WG_HOST = 'vpn.mansuke.jp';
             const WG_PORT = '80';
@@ -424,30 +422,29 @@ exports.staffDeleteVpnDevice = onCall(async (request) => {
             const WG_API_URL = `http://${WG_HOST}:${WG_PORT}/api`;
 
             try {
-                // Auth with wg-easy
+                // wg-easyに認証する
                 const response = await axios.post(`${WG_API_URL}/session`, { password: WG_PASSWORD }, { timeout: 8000 });
                 const cookies = response.headers['set-cookie'];
                 if (cookies && cookies.length > 0) {
                     const cookie = cookies[0].split(';')[0];
-                    // Delete from wg-easy
+                    // wg-easyから削陥する
                     await axios.delete(`${WG_API_URL}/wireguard/client/${vpnData.wgClientId}`, {
                         headers: { 'Cookie': cookie },
                         timeout: 8000
                     });
                 }
             } catch (wgError) {
-                logger.error("Failed to delete client from wg-easy (staff):", wgError.message);
-                // We'll throw an error if this was requested to be immediate, 
-                // because we can't guarantee connection drop without deleting it from wg-easy.
+                logger.error("wg-easyからのクライアント削陥失敗（スタッフ）:", wgError.message);
+                // 即時削陥が指定された場合、wg-easyから削陥できなければ接続切断を保証できないためエラーを返す。
                 throw new HttpsError('internal', 'VPNサーバーからのデバイス削除に失敗しました (wg-easy APIエラー)');
             }
 
-            // After successful wg-easy deletion, delete the Firestore doc entirely
+            // wg-easyからの削陥成功後、Firestoreドキュメントを完全に削陥する
             await vpnRef.delete();
             return { success: true, message: "デバイスを即時解約し、完全に削除しました。" };
             
         } else {
-            // Period-end cancellation: just mark as canceled
+            // 期間終了時キャンセル: キャンセル済みとしてマークするのみ
             await vpnRef.update({
                 status: 'canceled',
                 canceledAt: admin.firestore.FieldValue.serverTimestamp()

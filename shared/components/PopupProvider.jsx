@@ -79,14 +79,14 @@ export const PopupProvider = ({ children }) => {
             <AnimatePresence>
                 {popupContent && (
                     <div className="popup-overlay z-[9999]" onClick={(e) => {
-                        // Prevent closing on overlay click to match native behavior (requires explicit action)
+                        // オーバーレイクリックでは閉じない（ネイティブ挙動に合わせ、明示的な操作を必要とする）
                     }}>
                         <motion.div
                             className="popup-backdrop"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={popupContent.type === 'alert' ? popupContent.onConfirm : undefined} // Allow closing alert by clicking backdrop, but not others
+                            onClick={popupContent.type === 'alert' ? popupContent.onConfirm : undefined} // alertのみバックドロップクリックで閉じる（confirmとpromptは閉じない）
                         />
                         <motion.div
                             className="popup-container"

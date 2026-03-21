@@ -19,24 +19,24 @@ export default function SsoRedirect() {
             }
 
             if (!user || !passkeyVerified) {
-                // Should not happen if wrapped in RequireAuth, but safety check
+                // RequireAuthでラップされていれば発生しないはずだが、安全チェックのため
                 navigate(`/login?redirect=${encodeURIComponent(redirectParam)}`, { replace: true });
                 return;
             }
 
             try {
                 const urlObj = new URL(redirectParam);
-                // Only allow SSO to trusted MANSUKE domains and localhost
+                // 信頼するMANSUKEドメインとlocalhostにのみSSOを許可する
                 if (
                     urlObj.hostname.endsWith('.mansuke.jp') ||
                     urlObj.hostname.endsWith('.web.app') ||
                     urlObj.hostname === 'localhost' ||
                     urlObj.hostname === '127.0.0.1'
                 ) {
-                    // Generate a fresh ID token to pass to the target app
+                    // ターゲットアプリに渡すフレッシュなIDトークンを発行する
                     const token = await user.getIdToken(true);
 
-                    // Append the token to the redirect URL
+                    // リダイレクトURLにトークンを追加する
                     urlObj.searchParams.set('token', token);
 
                     window.location.href = urlObj.toString();

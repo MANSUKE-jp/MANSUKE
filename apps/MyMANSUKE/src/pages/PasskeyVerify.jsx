@@ -65,20 +65,20 @@ export default function PasskeyVerify() {
         setStatus('loading');
         setError('');
         try {
-            // 1. Get challenge from Cloud Function
+            // 1. Cloud Functionからチャレンジを取得する
             const getChallengeF = callFunction('getPasskeyAuthChallenge');
             const { data: challengeData } = await getChallengeF({ uid: user.uid });
 
-            // 2. Authenticate with passkey (WebAuthn)
+            // 2. パスキーで認証する（WebAuthn）
             const assertion = await authenticatePasskey(challengeData);
 
-            // 3. Verify with Cloud Function
+            // 3. Cloud Functionで検証する
             const verifyF = callFunction('verifyPasskeyAuth');
             await verifyF({ uid: user.uid, assertion });
 
             setPasskeyVerified(true);
 
-            // Set secure cross-subdomain cookie for redirecting to other MANSUKE apps
+            // 他のMANSUKEアプリへのリダイレクト用Cookie
             const token = await user.getIdToken();
             const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const domainStr = isLocalhost ? '' : 'domain=.mansuke.jp;';
@@ -92,7 +92,7 @@ export default function PasskeyVerify() {
                         return;
                     }
                 } catch (e) {
-                    // invalid URL, ignore
+                    // URL形式不詳、無視
                 }
             }
 
@@ -100,7 +100,7 @@ export default function PasskeyVerify() {
         } catch (err) {
             const msg = getPasskeyErrorMessage(err);
             if (msg === null) {
-                // User cancelled
+                // ユーザーがキャンセルした
                 setStatus('idle');
             } else {
                 setError(msg);
@@ -111,12 +111,12 @@ export default function PasskeyVerify() {
 
     return (
         <div className="auth-page">
-            {/* Background decoration */}
+            {/* 背景装飾 */}
             <div className="bg-orb bg-orb-1" style={{ top: '-10%', right: '-5%' }} />
             <div className="bg-orb bg-orb-2" style={{ bottom: '-10%', left: '-5%' }} />
 
             <div className="login-card" style={{ textAlign: 'center' }}>
-                {/* Icon */}
+                {/* アイコン */}
                 <div style={{
                     width: 80, height: 80,
                     margin: '0 auto var(--spacing-xl)',

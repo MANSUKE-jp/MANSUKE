@@ -13,11 +13,11 @@ export const PaymentModal = ({
     isLoading = false,
     isSubscription = false
 }) => {
-    // If modal is closed, don't render content (but keep AnimatePresence wrapper for exit animations)
+    // HIRUSUPAサービスの場合は支払い可否チェックをスキップする
     const isHirusupa = serviceName === 'HIRUSUPA';
     const canAfford = isHirusupa ? true : balance >= amount;
 
-    // Component variants
+    // モーション設定 オーバーレイ
     const overlayVariants = {
         hidden: { opacity: 0 },
         visible: { opacity: 1, transition: { duration: 0.2 } },
@@ -44,7 +44,7 @@ export const PaymentModal = ({
         <AnimatePresence>
             {isOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-                    {/* Backdrop */}
+                    {/* 背景 */}
                     <motion.div
                         variants={overlayVariants}
                         initial="hidden"
@@ -54,7 +54,7 @@ export const PaymentModal = ({
                         style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}
                     />
 
-                    {/* Modal Content */}
+                    {/* モーダル本体 */}
                     <motion.div
                         variants={modalVariants}
                         initial="hidden"

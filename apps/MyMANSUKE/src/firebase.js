@@ -26,18 +26,18 @@ setPersistence(auth, browserLocalPersistence);
 
 export const storage = getStorage(app);
 
-// Firestore with "users" database ID (not "default")
+// Firestore: "users"データベースIDを使用（"default"ではない）
 export const db = getFirestore(app, 'users');
 
 export const functions = getFunctions(app, 'asia-northeast2');
 
-// Uncomment to use Firebase Emulator locally:
+// ローカルでFirebaseエミュレーターを使用する場合はコメントを解除する:
 // connectFunctionsEmulator(functions, 'localhost', 5001);
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Callable Cloud Functions
+// Callable Cloud Functions呼び出しヘルパー
 export const callFunction = (name) => httpsCallable(functions, name);
 
 export default app;

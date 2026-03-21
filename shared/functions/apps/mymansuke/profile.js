@@ -1,7 +1,5 @@
-/**
- * functions/profile.js
- * firebase-functions v2: callable signature is (request) => {}
- */
+// functions/profile.js
+// firebase-functions v2: callableのシグネチャ指定: (request) => {}
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
@@ -17,7 +15,7 @@ function requireAuth(request) {
     }
 }
 
-// ── updateEmail ───────────────────────────────────────────────────────
+// メールアドレス更新──
 
 exports.updateEmail = onCall(async (request) => {
     requireAuth(request);
@@ -57,7 +55,7 @@ exports.updateEmail = onCall(async (request) => {
     return { success: true };
 });
 
-// ── updatePhone ───────────────────────────────────────────────────────
+// 電話番号更新──
 
 exports.updatePhone = onCall(async (request) => {
     requireAuth(request);
@@ -107,7 +105,7 @@ exports.updatePhone = onCall(async (request) => {
     return { success: true };
 });
 
-// ── updateNickname
+// ニックネーム更新
 
 exports.updateNickname = onCall(async (request) => {
     requireAuth(request);
@@ -154,7 +152,7 @@ exports.updateProfileFields = onCall(async (request) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Update Auth displayName if names change
+        // 名前変更時はAuthのdisplayNameも更新する
         if (field === 'lastName' || field === 'firstName') {
             const freshData = (await userRef.get()).data();
             const displayName = `${freshData.lastName || ''} ${freshData.firstName || ''}`.trim();
@@ -168,7 +166,7 @@ exports.updateProfileFields = onCall(async (request) => {
     }
 });
 
-// ── updateAvatarUrl
+// アバター URL更新
 
 exports.updateAvatarUrl = onCall(async (request) => {
     requireAuth(request);
@@ -188,7 +186,7 @@ exports.updateAvatarUrl = onCall(async (request) => {
     return { success: true };
 });
 
-// ── deleteAvatarUrl
+// アバター URL削除
 
 exports.deleteAvatarUrl = onCall(async (request) => {
     requireAuth(request);
@@ -202,12 +200,12 @@ exports.deleteAvatarUrl = onCall(async (request) => {
         // Firebase StorageのURLの特徴（.../o/avatars%2F...）が含まれているかチェックし、可能ならファイルも削除する
         try {
             if (avatarUrl.includes('firebasestorage.googleapis.com') && avatarUrl.includes('/o/avatars%2F')) {
-                // Extracts essentially everything after "/o/" and before "?alt=media"
-                // e.g. https://firebasestorage.googleapis.com/.../o/avatars%2Fuid_timestamp.jpeg?alt=...
+                // /o/の後のパスを取り出す
+                // 例: https://firebasestorage.googleapis.com/.../o/avatars%2Fuid_timestamp.jpeg?alt=...
                 const match = avatarUrl.match(/\/o\/(avatars%2F[^?]+)/);
                 if (match && match[1]) {
                     const filePath = decodeURIComponent(match[1]);
-                    // Initialize Storage if necessary (already done via admin.initializeApp())
+                    // Storageの初期化（admin.initializeApp()で済み）
                     const bucket = admin.storage().bucket('mansuke-app.firebasestorage.app');
                     const file = bucket.file(filePath);
                     const [exists] = await file.exists();
@@ -217,7 +215,7 @@ exports.deleteAvatarUrl = onCall(async (request) => {
                 }
             }
         } catch (e) {
-            console.error("Failed to delete avatar from storage:", e);
+            console.error("ストレージからのアバター削除失敗:", e);
             // 続行してFirestoreドキュメントからはURLを消す
         }
     }

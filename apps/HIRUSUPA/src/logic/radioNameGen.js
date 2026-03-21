@@ -31,7 +31,7 @@ class RadioNameService {
 
       if (result.data && Array.isArray(result.data.names)) {
         this.pool = [...this.pool, ...result.data.names];
-        this.totalAmount += 5; // Fixed 5 yen per refill
+        this.totalAmount += 5; // 1回の補充につき5円固定
       }
     } catch (error) {
       this.lastError = error; // 画面側に伝えるためにエラーを保持します

@@ -9,7 +9,7 @@ if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 
-// Lazy getters for databases to avoid analysis-time errors
+// 各データベースへの遅延初期化ゲッター（分析時エラーを防ぐ）
 const getHirusupaDb = () => getFirestore("hirusupa");
 const getUsersDb = () => getFirestore("users");
 const getRtdb = () => getDatabase();
@@ -35,7 +35,7 @@ async function getAuthenticatedUid(request) {
                 return response.data.uid;
             }
         } catch (error) {
-            console.error("SSO Verification Error:", error.message);
+            console.error("SSO検証エラー:", error.message);
         }
     }
 
@@ -287,9 +287,9 @@ exports.generateRadioNamesFromGemini = onCall({ region: "asia-northeast2" }, asy
                         });
                     }
                 });
-                console.log(`Refunded receipt ${receiptId} due to Gemini error.`);
+                console.log(`レシート ${receiptId} をGeminiエラーにより返金しました。`);
             } catch (refundErr) {
-                console.error("Failed to refund after Gemini error:", refundErr);
+                console.error("Geminiエラー後の返金失敗:", refundErr);
             }
         }
 
@@ -318,7 +318,7 @@ exports.generateRadioNamesFromGemini = onCall({ region: "asia-northeast2" }, asy
 // --- 5. 履歴保存と統計更新をサーバーで行う ---
 exports.logSubmission = onCall({ region: "asia-northeast2" }, async (request) => {
     // 認証は必須ではない（匿名でもSSOでも受け付けるためgetAuthenticatedUidは通さない場合があるが、
-    // ここでは念のためUid取得を試みる。失敗してもログは残す）
+    // ここでは念のためUID取得を試みる。失敗してもログは残す）
     let uid = "unknown";
     try {
         uid = await getAuthenticatedUid(request);

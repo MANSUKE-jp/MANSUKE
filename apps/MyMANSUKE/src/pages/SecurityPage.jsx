@@ -10,9 +10,7 @@ import { auth, callFunction, googleProvider } from '../firebase';
 import { validatePassword } from '../utils/validators';
 import { registerPasskey } from '../utils/passkey';
 
-// ═══════════════════════════════════════════════════════════════════
-// SHARED HELPERS
-// ═══════════════════════════════════════════════════════════════════
+// 共通ヘルパー
 
 function PasswordField({ id, label, value, onChange, autoComplete }) {
     const [show, setShow] = useState(false);
@@ -50,9 +48,7 @@ function ErrorBox({ message }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// EXPANDABLE PANEL — in-card animation
-// ═══════════════════════════════════════════════════════════════════
+// 展開パネル — カード内アニメーション
 function ExpandPanel({ open, children }) {
     const ref = useRef(null);
     const [height, setHeight] = useState(0);
@@ -66,7 +62,7 @@ function ExpandPanel({ open, children }) {
         }
     }, [open]);
 
-    // When content changes while open, recalc height
+    // コンテンツ変更時に高さを再計算する
     useEffect(() => {
         if (!open || !ref.current) return;
         const observer = new ResizeObserver(() => {
@@ -95,9 +91,7 @@ function ExpandPanel({ open, children }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// PASSWORD SECTION
-// ═══════════════════════════════════════════════════════════════════
+// パスワードセクション
 function PasswordSection() {
     const [open, setOpen] = useState(false);
     const [current, setCurrent] = useState('');
@@ -218,15 +212,13 @@ function PasswordSection() {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// PASSKEY SECTION
-// ═══════════════════════════════════════════════════════════════════
+// パスキーセクション
 function PasskeySection({ passkeyList, setPasskeyList }) {
     const { user, userData } = useAuth();
     const [addOpen, setAddOpen] = useState(false);
     const [addStatus, setAddStatus] = useState('idle');
     const [addError, setAddError] = useState('');
-    const [renaming, setRenaming] = useState(null); // passkey object
+    const [renaming, setRenaming] = useState(null); // パスキーオブジェクト
     const [deleteError, setDeleteError] = useState('');
 
     const handleRegister = async () => {
@@ -272,7 +264,7 @@ function PasskeySection({ passkeyList, setPasskeyList }) {
                 </button>
             </div>
 
-            {/* Add passkey expandable */}
+            {/* パスキー追加 展開パネル */}
             <ExpandPanel open={addOpen}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' }}>
                     <div style={{
@@ -307,7 +299,7 @@ function PasskeySection({ passkeyList, setPasskeyList }) {
                 </div>
             </ExpandPanel>
 
-            {/* Passkey list */}
+            {/* パスキー一覧 */}
             <div className="section-body">
                 {passkeyList.length === 0 ? (
                     <div style={{ padding: 'var(--spacing-xl)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--font-size-sm)' }}>
@@ -340,7 +332,7 @@ function PasskeySection({ passkeyList, setPasskeyList }) {
                                 </button>
                             </div>
 
-                            {/* Inline rename form */}
+                            {/* インライン名前変更フォーム */}
                             <ExpandPanel open={renaming?.id === pk.id}>
                                 <RenameInline passkey={pk}
                                     onClose={() => setRenaming(null)}
@@ -410,9 +402,7 @@ function RenameInline({ passkey, onClose, onRenamed }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// GOOGLE LINK ROW
-// ═══════════════════════════════════════════════════════════════════
+// Googleリンク行コンポーネント
 function GoogleLinkRow() {
     const { userData } = useAuth();
     const [loading, setLoading] = useState(false);
@@ -481,9 +471,7 @@ function GoogleLinkRow() {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// MAIN SecurityPage
-// ═══════════════════════════════════════════════════════════════════
+// メイン SecurityPage
 export default function SecurityPage() {
     const { userData } = useAuth();
     const passkeys = userData?.passkeys || [];
@@ -499,7 +487,7 @@ export default function SecurityPage() {
             <PasswordSection />
             <PasskeySection passkeyList={passkeyList} setPasskeyList={setPasskeyList} />
 
-            {/* Google section */}
+            {/* Googleセクション */}
             <div className="section-card" style={{ marginBottom: 'var(--spacing-xl)' }}>
                 <div className="section-header">
                     <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">

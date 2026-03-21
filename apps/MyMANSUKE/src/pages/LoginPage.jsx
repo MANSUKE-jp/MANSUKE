@@ -31,10 +31,9 @@ export default function LoginPage() {
             const cred = await signInWithPopup(auth, googleProvider);
             const uid = cred.user.uid;
 
-            // Verify this Google account is linked to a MANSUKE account
-            // The users Firestore has googleLinked:true for linked accounts
-            // We check Firestore via a custom token approach: if the uid exists
-            // in users collection AND googleLinked=true, allow login.
+            // このGoogleアカウントがMANSUKEアカウントと連携されているか確認する
+            // users Firestoreの連携済みアカウントはgoogleLinked:trueを持つ
+            // uidぎusersコレクションに存在しウイgoogleLinked=trueならログインを許可する
             const { getFirestore, getDoc, doc } = await import('firebase/firestore');
             const { getApp } = await import('firebase/app');
             const fsdb = getFirestore(getApp(), 'users');

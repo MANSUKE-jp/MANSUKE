@@ -5,7 +5,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 const getDb = () => getFirestore('users');
 
 exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
-    // 1. CORS Allowances for all trusted domains
+    // 1. 信頼できる全ドメインへのCORS許可
     const origin = req.headers.origin;
     if (origin && (
         origin.endsWith('.mansuke.jp') ||
@@ -29,7 +29,7 @@ exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
     try {
         let idToken = null;
 
-        // 2a. Check cookies for __session or mansuke_id_token
+        // 2a. Cookieから__sessionまmansuke_id_tokenを確認する
         const cookieHeader = req.headers.cookie || '';
         const cookies = {};
         cookieHeader.split(';').forEach(cookie => {
@@ -43,7 +43,7 @@ exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
             idToken = cookies['__session'];
         }
 
-        // 2b. If no cookie, check Authorization: Bearer <token>
+        // 2b. CookieがなければAuthorization: Bearer トークンを確認する
         if (!idToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             idToken = req.headers.authorization.split('Bearer ')[1];
         }
@@ -54,14 +54,14 @@ exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
             return;
         }
 
-        // 3. Verify the token using MyMANSUKE's admin environment
+        // 3. MyMANSUKEのadmin環境でトークンを検証する
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const uid = decodedToken.uid;
 
-        // 4. Look up user details in the "users" database
+        // 4. "users"データベースでユーザー詳細を検索する
         const userDoc = await getDb().collection('users').doc(uid).get();
 
-        // 5. Construct a SAFE payload (Strip PII like email, phone number)
+        // 5. 安全なペイロードを構築する（メールや電話番号などの個人情報は除く）
         let userData = {
             uid: uid
         };
@@ -70,7 +70,7 @@ exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
             const data = userDoc.data();
             userData.nickname = data.nickname || "MANSUKE ユーザー";
 
-            // Add name instead of balance
+            // 残高ではなく名前を追加する
             if (data.lastName && data.firstName) {
                 userData.name = `${data.lastName} ${data.firstName}`;
             } else {
@@ -79,12 +79,12 @@ exports.verifyMansukeToken = onRequest({ cors: false }, async (req, res) => {
             userData.isStaff = data.isStaff === true;
         }
 
-        // Mint custom token so the target app's Firebase SDK can natively log in
+        // カスタムトークンを発行してターゲットアプリのFirebase SDKがネイティブログインできるようにする
         try {
             const customToken = await admin.auth().createCustomToken(uid);
             userData.customToken = customToken;
         } catch (tokenErr) {
-            console.error("Failed to mint custom token:", tokenErr);
+            console.error("カスタムトークン発行失敗:", tokenErr);
         }
 
         res.status(200).json(userData);

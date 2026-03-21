@@ -143,7 +143,7 @@ exports.werewolfVerifyMansukeToken = onRequest({ region: "asia-northeast2", cors
     }
 
     try {
-        // Parse cookies directly from header
+        // Cookieをヘッダーから直接パースする
         const cookieHeader = req.headers.cookie || '';
         const cookies = {};
         cookieHeader.split(';').forEach(cookie => {
@@ -155,7 +155,7 @@ exports.werewolfVerifyMansukeToken = onRequest({ region: "asia-northeast2", cors
 
         let idToken = cookies['__session'];
 
-        // If not in cookie, check Authorization header (for cross-domain requests)
+        // CookieになければAuthorizationヘッダーを確認する（クロスドメインリクエスト用）
         if (!idToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
             idToken = req.headers.authorization.split('Bearer ')[1].trim();
         }
@@ -165,14 +165,14 @@ exports.werewolfVerifyMansukeToken = onRequest({ region: "asia-northeast2", cors
             return;
         }
 
-        // Verify token
+        // トークンを検証する
         const decodedToken = await admin.auth().verifyIdToken(idToken);
         const uid = decodedToken.uid;
 
-        // Generate a custom token for this project
+        // このプロジェクト向けのカスタムトークンを発行する
         const customToken = await admin.auth().createCustomToken(uid);
 
-        // Fetch user data from shared 'users' database
+        // 共有usersデータベースからユーザーデータを取得する
         const userDoc = await getUsersDb().collection('users').doc(uid).get();
 
         let userData = { uid: uid, email: decodedToken.email, customToken: customToken };

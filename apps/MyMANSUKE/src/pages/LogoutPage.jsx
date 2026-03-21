@@ -11,7 +11,7 @@ export default function LogoutPage() {
     useEffect(() => {
         const performLogout = async () => {
             try {
-                // Remove passkey verification state
+                // パスキー認証状態をリセットする
                 setPasskeyVerified(false);
                 localStorage.removeItem('mansukePasskeyVerified');
 
@@ -29,12 +29,12 @@ export default function LogoutPage() {
                     document.cookie = `__session=; ${domainStr} path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
                 });
 
-                // Sign out from Firebase Auth
+                // Firebase Authからサインアウトする
                 await signOut(auth);
             } catch (err) {
                 // silent
             } finally {
-                // Redirect back to login page (hard reload to wipe any residual React state)
+                // ログインページにリダイレクト（残存React状態をワイプするためハードリロード）
                 window.location.href = '/login';
             }
         };

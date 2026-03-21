@@ -1,7 +1,5 @@
-/**
- * functions/index.js — Cloud Functions entry point
- * All functions are imported and exported from their respective modules.
- */
+// functions/index.js — Cloud Functionsエントリーポイント
+// 各モジュールから関数をインポートしてエクスポートする。
 
 const { onCall } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
@@ -19,7 +17,7 @@ const { verifyMansukeToken } = require('./tokenVerification');
 const { registerVpnDevice, deleteVpnDevice, deleteAllVpnDevices, getVpnConfig } = require('./vpn');
 const { processPayment, refundPayment, redeemCard, createSubscription, cancelSubscription, processSubscriptions } = require('../../payment.js');
 module.exports = {
-    // Auth
+    // 認証
     checkEmailUnique,
     checkPhoneUnique,
     createAccount,
@@ -28,7 +26,7 @@ module.exports = {
     unlinkGoogle,
     deleteUnlinkedGoogleUser,
 
-    // Passkey
+    // パスキー
     registerPasskeyChallenge,
     verifyPasskeyRegistration,
     getPasskeyAuthChallenge,
@@ -40,7 +38,7 @@ module.exports = {
     diditWebhook,
     createDiditSession,
 
-    // Profile
+    // プロフィール
     updateEmail,
     updatePhone,
     mymansukeUpdateNickname: updateNickname,
@@ -48,10 +46,10 @@ module.exports = {
     mymansukeDeleteAvatarUrl: deleteAvatarUrl,
     mymansukeUpdateProfileFields: updateProfileFields,
 
-    // Redeem
+    // 怒月カード引う換え
     redeemCard,
 
-    // Payment Processing (Unified)
+    // 決済処理（統合）
     processPayment,
     refundPayment,
     createSubscription,
@@ -64,8 +62,8 @@ module.exports = {
     deleteAllVpnDevices,
     getVpnConfig,
 
-    // Webhooks
+    // Webhook
 
-    // Auth Tools
+    // 認証ツール
     mymansukeVerifyMansukeToken: verifyMansukeToken,
 };

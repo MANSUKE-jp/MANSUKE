@@ -1,19 +1,17 @@
-/**
- * functions/didit.js
- * Didit KYC webhook handler.
- *
- * Didit sends POST requests to this HTTPS endpoint when KYC results are ready.
- * The request payload is verified with HMAC-SHA256 using the DIDIT_WEBHOOK_SECRET.
- *
- * Setup:
- *   1. Deploy this function: firebase deploy --only functions:diditWebhook
- *   2. Get the endpoint URL from Firebase Console > Functions > diditWebhook
- *      (e.g. https://us-central1-mansuke-app.cloudfunctions.net/diditWebhook)
- *   3. Register this URL in the Didit dashboard:
- *      https://verify.didit.me/ → Settings → Webhooks → Add webhook URL
- *   4. Copy the webhook secret from Didit dashboard and set it in functions/.env:
- *      DIDIT_WEBHOOK_SECRET=<your_secret>
- */
+// functions/didit.js
+// Didit KYC Webhookハンドラー。
+//
+// DiditはKYC結果含出APIリクエスト（POST）をこのHTTPSエンドポイントに送信する。
+// リクエストはDIDIT_WEBHOOK_SECRETを使ってHMAC-SHA256で検証する。
+//
+// セットアップ:
+//   1. この関数をデプロイする: firebase deploy --only functions:diditWebhook
+//   2. Firebaseコンソール > Functions > diditWebhookからエンドポイントURLを取得する
+//      （例: https://us-central1-mansuke-app.cloudfunctions.net/diditWebhook）
+//   3. そのURLをDiditダッシュボードに登録する:
+//      https://verify.didit.me/ → Settings → Webhooks → Add webhook URL
+//   4. Diditダッシュボードからwebhookシークレットをコピーしてfunctions/.envに設定する:
+//      DIDIT_WEBHOOK_SECRET=《シークレット》
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
@@ -28,19 +26,19 @@ const getDb = () => getFirestore('users');
 const WEBHOOK_SECRET = process.env.DIDIT_WEBHOOK_SECRET;
 const WORKFLOW_ID = process.env.DIDIT_WORKFLOW_ID || '72de9a63-73eb-475d-9e11-5e95c445199d';
 
-// ── HMAC verification ─────────────────────────────────────────────────
+// HMAC署名検証
 
 function verifySignature(rawBody, signature) {
     if (!WEBHOOK_SECRET) {
-        logger.warn('DIDIT_WEBHOOK_SECRET not set — skipping signature verification');
-        return true; // Allow in dev, block in prod
+        logger.warn('DIDIT_WEBHOOK_SECRETが未設定 -- 署名検証をスキップします');
+        return true; // 開発環境では許可、本番環境ではブロックする
     }
     const expected = crypto
         .createHmac('sha256', WEBHOOK_SECRET)
         .update(rawBody)
         .digest('hex');
 
-    // DEBUG LOGGING
+    // デバッグログ
     const secretMasked = WEBHOOK_SECRET.substring(0, 4) + '...' + WEBHOOK_SECRET.substring(WEBHOOK_SECRET.length - 4);
     logger.info('Signature debug:', {
         secretLength: WEBHOOK_SECRET.length,
@@ -58,14 +56,14 @@ function verifySignature(rawBody, signature) {
     }
 }
 
-// ── Webhook Handler ───────────────────────────────────────────────────
+// Webhookハンドラー
 
 exports.diditWebhook = onRequest(async (req, res) => {
     if (req.method !== 'POST') {
         return res.status(405).send('Method Not Allowed');
     }
 
-    // Removed functions.logger as it was causing a ReferenceError
+    // functions.loggerはReferenceErrorを引き起こしていたため削除済み
     logger.info('Incoming Headers:', req.headers);
 
     const sigV2 = req.headers['x-signature-v2'] || '';
@@ -104,24 +102,24 @@ exports.diditWebhook = onRequest(async (req, res) => {
     const payload = req.body;
     logger.info('Didit webhook received', { payload });
 
-    // Extract key fields
-    // Expected payload structure from Didit:
+    // Diditからのペイロードの主要フィールドを取り出す
+    // Diditから期待されるペイロード構造:
     // {
     //   workflow_id: "...",
     //   session_id: "...",
-    //   vendor_data: "...", <- This contains our Firebase UID (passed via URL ?vendor_data=)
+    //   vendor_data: "...", <- Firebase UID（URLの?vendor_data=経由で渡す）
     //   status: "Approved" | "Declined",
     //   decision: { ... },
     // }
 
-    // Didit often uses capitalized statuses in their actual payloads: "Approved" | "Declined", so lowercase it
+    // Diditは実際のペイロードで先頭大文字のステータスを使うため小文字化する: "Approved" | "Declined"
     const status = (payload.status || '').toLowerCase();
 
     const decision = payload.decision || {};
     const metadata = payload.metadata || decision.metadata || {};
     const sessionId = payload.session_id || decision.session_id;
 
-    // Extract verified email/phone from Didit's detailed arrays
+    // Diditの詳細配列から検証済みメールアドレスと電話番号を取り出す
     const emailVerifications = decision.email_verifications || [];
     const phoneVerifications = decision.phone_verifications || [];
 
@@ -133,16 +131,16 @@ exports.diditWebhook = onRequest(async (req, res) => {
     let approvedPhone = payload.phone_number || payload.approved_phone || null;
     if (!approvedPhone && phoneVerifications.length > 0) {
         approvedPhone = phoneVerifications[0].full_number || phoneVerifications[0].phone_number;
-        // Normalize Japanese phone numbers (e.g. +8180... -> 080...)
+        // 日本の電話番号を正規化する（例: +8180... → 080...）
         if (approvedPhone && approvedPhone.startsWith('+81')) {
             approvedPhone = '0' + approvedPhone.slice(3);
         }
     }
 
-    // We pass the Firebase UID in vendor_data, but also check user_id/userId as fallbacks
+    // Firebase UIDをvendor_dataで渡すが、user_id/userIdもフォールバックとして確認する
     let userId = payload.vendor_data || payload.user_id || payload.userId;
 
-    // If Didit dropped vendor_data, fallback to finding the user by their verified email/phone
+    // Diditがvendor_dataを落とした場合、検証済みメールアドレスや電話番号でユーザーを特实する
     if (!userId && approvedEmail) {
         const usersByEmail = await getDb().collection('users').where('email', '==', approvedEmail).limit(1).get();
         if (!usersByEmail.empty) {
@@ -190,7 +188,7 @@ exports.diditWebhook = onRequest(async (req, res) => {
         const phoneMatches = !approvedPhone || normalizedApprovedPhone === normalizedUserPhone;
 
         if (!emailMatches || !phoneMatches) {
-            // Mismatch — store as 'mismatch' (NOT 'approved') so Didit doesn't reuse the old session
+            // 不一致 -- 不一致状態で保存する（小字化変換の古いセッションをDiditが再利用しないよう）
             await userRef.update({
                 kycStatus: 'mismatch',
                 kycMismatch: true,
@@ -211,7 +209,7 @@ exports.diditWebhook = onRequest(async (req, res) => {
                 kycDiditPhone: approvedPhone || null,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
-            // Set custom claim so Firestore rules can check kycApproved
+            // FirestoreルールがなkycApprovedを確認できるようカスタムクレームを設定する
             await admin.auth().setCustomUserClaims(userId, { kycApproved: true });
         }
 
@@ -233,10 +231,10 @@ exports.diditWebhook = onRequest(async (req, res) => {
     return res.status(200).json({ received: true });
 });
 
-// ── Didit Session Creation ──────────────────────────────────────────────
+// Diditセッション作成
 
 exports.createDiditSession = onCall(async (request) => {
-    // 1. Verify caller is authenticated
+    // 1. 認証確認
     if (!request.auth) {
         throw new HttpsError(
             'unauthenticated',
@@ -255,14 +253,14 @@ exports.createDiditSession = onCall(async (request) => {
         );
     }
 
-    // 2. Prepare payload for Didit API
+    // 2. Didit API向けのペイロードを準備する
     const payload = {
         workflow_id: WORKFLOW_ID,
-        vendor_data: uid, // Pass the Firebase UID so webhook can identify user
+        vendor_data: uid, // Firebase UIDを渡してwebhookがユーザーを識別できるようにする
     };
 
     try {
-        // 3. Call Didit POST /v3/session
+        // 3. Didit POST /v3/sessionを呼び出す
         const response = await fetch('https://verification.didit.me/v3/session/', {
             method: 'POST',
             headers: {
@@ -282,9 +280,9 @@ exports.createDiditSession = onCall(async (request) => {
         }
 
         const result = await response.json();
-        // The API returns a session URL, e.g. { url: "https://verify.didit.me/..." }
+        // APIはセッションURLを返す： { url: "https://verify.didit.me/..." }
 
-        // Return the URL to the frontend
+        // フロントエンドにURLを返す
         return {
             url: result.url
         };

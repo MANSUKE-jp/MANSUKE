@@ -1,14 +1,12 @@
-/**
- * MANSUKE Staff Console — Cloud Functions entry point
- */
+// MANSUKEスタッフコンソール — Cloud Functionsエントリーポイント
 
 const { staffSearchCards, staffGetCardDetail, staffUpdateCardBalance, staffToggleCardStatus, staffVerifyPrepaidCardCode, activatePrepaidCard, importCards } = require('./cards');
-// Users
+// ユーザー管理
 const { staffSearchUsers, staffGetUserDetail, staffAdjustBalance, staffUpdateUserProfile, staffDeleteAvatarUrl, staffDeleteVpnDevice, staffResumeVpnDevice } = require('./users');
 const { verifyMansukeToken } = require('./tokenVerification');
 
 module.exports = {
-    // Cards
+    // カード
     staffSearchCards,
     staffGetCardDetail,
     staffUpdateCardBalance,
@@ -17,7 +15,7 @@ module.exports = {
     activatePrepaidCard,
     importCards,
 
-    // User Management
+    // ユーザー管理
     staffSearchUsers,
     staffGetUserDetail,
     staffAdjustBalance,

@@ -8,13 +8,13 @@ const { internalCreateSubscription, internalCancelSubscription } = require('../.
 if (!admin.apps.length) admin.initializeApp();
 const db = getFirestore("users");
 
-// Configuration for WireGuard Easy API
+// WireGuard Easy APIの設定
 const WG_HOST = 'vpn.mansuke.jp';
 const WG_PORT = '80';
 const WG_PASSWORD = 'mansuke_wg_api_pass_2026';
 const WG_API_URL = `http://${WG_HOST}:${WG_PORT}/api`;
 
-// Helper function to get authenticated UID from request (supports frontend auth & mansuke token)
+// フロント認証とMANSUKEトークン認証の両方に対応した認証UID取得ヘルパー
 async function getAuthenticatedUid(request) {
     if (request.auth && request.auth.uid) {
         return request.auth.uid;
@@ -28,7 +28,7 @@ async function getAuthenticatedUid(request) {
                 return decodedToken.uid;
             }
         } catch (error) {
-            console.error("Token verification failed natively. Checking via API...", error.message);
+            console.error("Firebaseによるトークン検証失敗。APIによる検証を試みます...", error.message);
             try {
                 const response = await axios.get('https://my.mansuke.jp/api/verifyMansukeToken', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -37,28 +37,28 @@ async function getAuthenticatedUid(request) {
                     return response.data.uid;
                 }
             } catch (apiError) {
-                console.error("API verification failed:", apiError.message);
+                console.error("API検証失敗:", apiError.message);
             }
         }
     }
     throw new HttpsError('unauthenticated', '認証が必要です。');
 }
 
-// Helper to authenticate with wg-easy API and get session cookie
+// wg-easy APIに認証してセッションCookieを取得するヘルパー
 async function getWgAuthCookie() {
     try {
         const response = await axios.post(`${WG_API_URL}/session`, {
             password: WG_PASSWORD
         }, { timeout: 8000 });
         
-        // Extract the connect.sid cookie
+        // connect.sid Cookieを取り出す
         const cookies = response.headers['set-cookie'];
         if (cookies && cookies.length > 0) {
             return cookies[0].split(';')[0];
         }
         throw new Error("No session cookie returned");
     } catch (error) {
-        console.error("Failed to authenticate with WireGuard API:", error.message, error.response?.data, error.code);
+        console.error("WireGuard API認証失敗:", error.message, error.response?.data, error.code);
         if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
             throw new HttpsError('unavailable', 'VPNサーバー本体が現在応答していません。時間をおいて再度お試しください。');
         }
@@ -66,10 +66,8 @@ async function getWgAuthCookie() {
     }
 }
 
-/**
- * 1. Register a new VPN device
- * This function triggers the payment (subscription creation), then creates the client in wg-easy.
- */
+// 1. VPNデバイスを登録する
+// サブスクリプション作成後、wg-easyにクライアントを登録する。
 exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { deviceName } = request.data;
@@ -78,22 +76,22 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
          throw new HttpsError('invalid-argument', 'デバイス名は1文字以上10文字以内で入力してください。');
     }
 
-    // Prepare a unique name for wg-easy. Since wg-easy enforces unique client names,
-    // we must append a random short string to prevent conflicts if two users use the same device name.
+    // wg-easyは包クライアント名を強制するため、
+    // 同じデバイス名を使用した2人のユーザー間で競合しないようランダム文字列を付加する。
     const safeDeviceName = deviceName.trim().replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const randomSuffix = crypto.randomBytes(3).toString('hex'); // 6 random characters
+    const randomSuffix = crypto.randomBytes(3).toString('hex'); // 6文字のランダム文字列
     const wgClientName = `${safeDeviceName.substring(0, 15)}_${uid.substring(0, 4)}_${randomSuffix}`;
 
     try {
-        // Step 1: Create a subscription (₹300/month) using direct function call
+        // ステップ1: サブスクリプションを作成する（300円/月）
         const subResult = await internalCreateSubscription(uid, 300, 'mansuke_vpn', `[VPN] ${deviceName}`, 'month');
         const subId = subResult.subId;
         
         try {
-            // Step 2: Authenticate with wg-easy
+            // ステップ2: wg-easyに認証する
             const cookie = await getWgAuthCookie();
 
-            // Step 3: Create client in wg-easy
+            // ステップ3: wg-easyにクライアントを作成する
             await axios.post(`${WG_API_URL}/wireguard/client`, {
                 name: wgClientName
             }, {
@@ -101,7 +99,7 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
                 timeout: 8000
             });
             
-            // Step 3.5: Fetch clients to get the ID of the newly created client
+            // ステップ3.5: 新規作成クライアントのIDを取得するためクライアント一覧を取得
             const clientsResponse = await axios.get(`${WG_API_URL}/wireguard/client`, {
                 headers: { 'Cookie': cookie },
                 timeout: 8000
@@ -112,7 +110,7 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
                 throw new Error("Failed to retrieve the new VPN client ID from the server");
             }
             
-            // Step 4: Save metadata to Firestore under /users/{uid}/vpn/{deviceId}
+            // ステップ4: /users/{uid}/vpn/{deviceId}にFirestoreにメタデータを保存する
             const vpnRef = db.collection('users').doc(uid).collection('vpn').doc(newClient.id);
             
             await vpnRef.set({
@@ -127,20 +125,20 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
             return { success: true, deviceId: newClient.id, message: "デバイスが登録されました。" };
 
         } catch (wgError) {
-             // Rollback: cancel the subscription we just created
+             // ロールバック: 作成したサブスクリプションをキャンセルする
              try {
                  await internalCancelSubscription(uid, subId);
              } catch (cancelError) {
-                 console.error("Failed to rollback subscription:", cancelError.message);
+                 console.error("サブスクリプションのロールバック失敗:", cancelError.message);
              }
              
-             throw wgError; // re-throw to be caught by the outer catch block
+             throw wgError; // 外側のcatchブロックに淘り上げる
         }
 
     } catch (error) {
         console.error("Error registering VPN device:", error);
         
-        // If it's a known error from our subscription service (like insufficient funds), pass it along
+        // サブスクリプションサービスからの既知のエラー（残高不足など）はそのまま渡す
         if (error instanceof HttpsError) {
              throw error;
         }
@@ -149,10 +147,8 @@ exports.registerVpnDevice = onCall({ invoker: "public" }, async (request) => {
     }
 });
 
-/**
- * 2. Delete a VPN device
- * Cancels the subscription, deletes the client from wg-easy, and removes it from Firestore.
- */
+// 2. VPNデバイスを削除する
+// サブスクリプションをキャンセルし、wg-easyからクライアントを削除し、Firestoreからも削除する。
 exports.deleteVpnDevice = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { deviceId } = request.data;
@@ -171,18 +167,18 @@ exports.deleteVpnDevice = onCall({ invoker: "public" }, async (request) => {
         
         const vpnData = vpnDoc.data();
         
-        // Step 1: Cancel subscription
+        // ステップ1: サブスクリプションをキャンセルする
         if (vpnData.subscriptionId) {
             try {
                 await internalCancelSubscription(uid, vpnData.subscriptionId);
             } catch (cancelError) {
-                 console.warn("Subscription cancellation warning:", cancelError.message);
-                 // We continue even if the subscription cancel fails (e.g. it might already be cancelled)
+                 console.warn("サブスクリプションキャンセル警告:", cancelError.message);
+                 // サブスクリプションキャンセルが失敗しても続行する（そもそもキャンセル済みの場合など）
             }
         }
         
-        // Step 2: Update status in firestore to 'canceled' and record the timestamp.
-        // We do NOT delete the client from wg-easy here. It will run until the subscription expires.
+        // ステップ2: Firestoreのステータスを'canceled'に更新してタイムスタンプを記録する。
+        // wg-easyからは即座にクライアントを削除しない。サブスクリプションが切れるまで引き続き利用可能気。
         await vpnRef.update({
              status: 'canceled',
              canceledAt: FieldValue.serverTimestamp()
@@ -196,9 +192,7 @@ exports.deleteVpnDevice = onCall({ invoker: "public" }, async (request) => {
     }
 });
 
-/**
- * 3. Delete all VPN devices for a user
- */
+// 3. ユーザーの全VPNデバイスを削除する
 exports.deleteAllVpnDevices = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     
@@ -224,10 +218,8 @@ exports.deleteAllVpnDevices = onCall({ invoker: "public" }, async (request) => {
     }
 });
 
-/**
- * 4. Get VPN Config details (IKEv2 style text representation)
- * We fetch the configuration from wg-easy and parse it.
- */
+// 4. VPN構成詳細を取得する
+// wg-easyから構成を取得してパースする。
 exports.getVpnConfig = onCall({ invoker: "public" }, async (request) => {
     const uid = await getAuthenticatedUid(request);
     const { deviceId } = request.data;
@@ -237,7 +229,7 @@ exports.getVpnConfig = onCall({ invoker: "public" }, async (request) => {
     }
 
     try {
-        // First verify ownership
+        // まず所有権を確認する
         const vpnDoc = await db.collection('users').doc(uid).collection('vpn').doc(deviceId).get();
         if (!vpnDoc.exists) {
             throw new HttpsError('permission-denied', 'このデバイスへアクセスする権限がありません。');
@@ -247,7 +239,7 @@ exports.getVpnConfig = onCall({ invoker: "public" }, async (request) => {
 
         const cookie = await getWgAuthCookie();
         
-        // We get the raw config file stream from wg-easy
+        // wg-easyから生の構成ファイルストリームを取得する
         const response = await axios.get(`${WG_API_URL}/wireguard/client/${deviceId}/configuration`, {
              headers: { 'Cookie': cookie },
              responseType: 'text',
@@ -256,7 +248,7 @@ exports.getVpnConfig = onCall({ invoker: "public" }, async (request) => {
         
         const rawConfig = response.data;
         
-        // Parse the raw WireGuard .conf file
+        // 生のWireGuard .confファイルをパースする
         const extractField = (regex, defaultVal = '') => {
             const match = rawConfig.match(regex);
             return match ? match[1].trim() : defaultVal;

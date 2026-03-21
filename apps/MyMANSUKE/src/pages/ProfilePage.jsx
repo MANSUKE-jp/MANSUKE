@@ -15,7 +15,7 @@ function InfoRow({ label, value }) {
     );
 }
 
-// Generic editable row for profile fields
+// プロフィールフィールド共通の編集可能行コンポーネント
 function EditableRow({ label, value, fieldName, placeholder, maxLength = 20 }) {
     const [editing, setEditing] = useState(false);
     const [val, setVal] = useState(value || '');
@@ -23,7 +23,7 @@ function EditableRow({ label, value, fieldName, placeholder, maxLength = 20 }) {
     const [error, setError] = useState('');
     const [done, setDone] = useState(false);
 
-    // Sync value if parent changes
+    // 親の値変更時に同期する
     React.useEffect(() => {
         if (!editing) setVal(value || '');
     }, [value, editing]);
@@ -255,7 +255,7 @@ function AvatarRow({ avatarUrl }) {
     );
 }
 
-// Inline nickname editor row
+// ニックネームインライン編集行
 function NicknameRow({ nickname }) {
     const [editing, setEditing] = useState(false);
     const [val, setVal] = useState(nickname);
@@ -361,7 +361,7 @@ export default function ProfilePage() {
     const furiganaLast = userData?.furiganaLast || '';
     const furiganaFirst = userData?.furiganaFirst || '';
     
-    // Auth info (requires auth operations to change, handled elsewhere)
+    // 認証情報（変更にAuth操作が必要なため別の画面で処理する）
     const email = userData?.email || '';
     const phone = userData?.phone || '';
     
@@ -376,7 +376,7 @@ export default function ProfilePage() {
                 <p className="page-subtitle">アカウントに登録されている情報を確認・変更できます</p>
             </div>
 
-            {/* Public info — shown first */}
+            {/* 公開情報 — 最初に表示 */}
             <SectionCard
                 icon={Users}
                 title="他のMANSUKEユーザーもアクセスできる情報"
@@ -386,7 +386,7 @@ export default function ProfilePage() {
                 <NicknameRow nickname={nickname} />
             </SectionCard>
 
-            {/* Private info */}
+            {/* 非公開情報 */}
             <SectionCard
                 icon={Lock}
                 title="自分のみがアクセスできる情報"
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                 <EditableRow label="メイ" value={furiganaFirst} fieldName="furiganaFirst" placeholder="タロウ" />
                 <EditableRow label="生年月日" value={birthday} fieldName="birthday" placeholder="1990-01-01" />
 
-                {/* Email and Phone (read-only in this view because they have separate auth flows) */}
+                {/* メールアドレスと電話番号（別フローなのでこの画面では読み取り専用） */}
                 <InfoRow label="メールアドレス" value={email} />
                 <InfoRow label="電話番号" value={phone} />
             </SectionCard>

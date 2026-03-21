@@ -1,6 +1,4 @@
-/**
- * functions/cards.js — Staff-only card management Cloud Functions
- */
+// functions/cards.js — スタッフ専用カード管理Cloud Functions
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { logger } = require('firebase-functions');
@@ -34,22 +32,22 @@ exports.staffSearchCards = onCall(async (request) => {
     const q = query.trim().toUpperCase();
 
     try {
-        // Firestore doesn't support native partial match, so we fetch by range queries
-        // Search publicCode range
+        // Firestoreはネイティブの部分一致検索をサポートしないため、範囲クエリで取得する
+        // publicCodeの範囲検索
         const publicSnap = await getPrepaidDb().collection('cards')
             .where('publicCode', '>=', q)
             .where('publicCode', '<=', q + '\uf8ff')
             .limit(50)
             .get();
 
-        // Search pinCode range
+        // pinCodeの範囲検索
         const pinSnap = await getPrepaidDb().collection('cards')
             .where('pinCode', '>=', q)
             .where('pinCode', '<=', q + '\uf8ff')
             .limit(50)
             .get();
 
-        // Merge results, deduplicate by doc ID
+        // 結果をマージし、doc IDで重複除去する
         const seen = new Set();
         const cards = [];
 
@@ -74,7 +72,7 @@ exports.staffSearchCards = onCall(async (request) => {
         publicSnap.docs.forEach(addDoc);
         pinSnap.docs.forEach(addDoc);
 
-        // Sort by publicCode
+        // publicCodeでソート
         cards.sort((a, b) => a.publicCode.localeCompare(b.publicCode));
 
         return { cards: cards.slice(0, 100) };
@@ -97,7 +95,7 @@ exports.staffGetCardDetail = onCall(async (request) => {
         const data = cardDoc.data();
         const result = { id: cardDoc.id, ...data };
 
-        // If redeemed, get linked user info
+        // 引き換え済みの場合、連絡ユーザー情報を取得する
         if (data.redeemedBy) {
             const userDoc = await getUsersDb().collection('users').doc(data.redeemedBy).get();
             if (userDoc.exists) {
@@ -279,7 +277,7 @@ exports.importCards = onCall(async (request) => {
         let successCount = 0;
         let skippedCount = 0;
 
-        // BATCH processing (Firestore limit 500)
+        // バッチ処理（Firestoreの上限500件対応）
         const chunks = [];
         for (let i = 0; i < cards.length; i += 400) {
             chunks.push(cards.slice(i, i + 400));

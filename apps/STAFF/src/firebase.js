@@ -15,28 +15,28 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Firestore: prepaid-card database
+// Firestore: prepaid-cardデータベース
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
 }, 'prepaid-card');
 
-// Firestore: users database
+// Firestore: usersデータベース
 export const usersDb = initializeFirestore(app, {
     experimentalForceLongPolling: true,
 }, 'users');
 
-// Firestore: orders database
+// Firestore: ordersデータベース
 export const ordersDb = initializeFirestore(app, {
     experimentalForceLongPolling: true,
 }, 'orders');
 
-// Cloud Functions (osaka region)
+// Cloud Functions（大阪リージョン）
 export const functions = getFunctions(app, "asia-northeast2");
 
-// Auth
+// 認証
 export const auth = getAuth(app);
 
-// Helper to call functions
+// Cloud Functions呼び出しヘルパー
 export const callFunction = (name) => httpsCallable(functions, name);
 
 export default app;

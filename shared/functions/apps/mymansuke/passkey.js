@@ -1,7 +1,5 @@
-/**
- * functions/passkey.js
- * firebase-functions v2: callable signature is (request) => {}
- */
+// functions/passkey.js
+// firebase-functions v2: callableのシグネチャ指定: (request) => {}
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
@@ -21,7 +19,7 @@ const RP_ID = process.env.RP_ID || 'mansuke.jp';
 const RP_NAME = 'MANSUKEアカウント';
 const RP_ORIGIN = process.env.RP_ORIGIN || 'https://my.mansuke.jp';
 
-// Accept localhost origins for development
+// 開発環境用にローカルホストのオリジンも許可する
 const EXPECTED_ORIGINS = [RP_ORIGIN, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:4000'];
 const EXPECTED_RPIDS = [RP_ID, 'localhost'];
 
@@ -31,10 +29,10 @@ function requireAuth(request) {
     }
 }
 
-// Helper: challenges コレクション (users DB 内)
+// challengesコレクションへのヘルパー (users DB内)
 const challengesCol = () => getDb().collection('challenges');
 
-// ── registerPasskeyChallenge ──────────────────────────────────────────
+// パスキー登録チャレンジ生成
 
 exports.registerPasskeyChallenge = onCall(async (request) => {
     const { uid: dataUid, email, displayName, nickname } = request.data;
@@ -121,8 +119,8 @@ exports.verifyPasskeyRegistration = onCall(async (request) => {
 
     const { credential } = verification.registrationInfo;
 
-    // First passkey (uid already registered) gets a descriptive default name;
-    // subsequent ones get a generic name.
+    // 1剧1パスキー（UID登録済み）は説明的なデフォルト名にする;
+    // 2枚目以降は汎用名にする。
     const existingPasskeys = uid
         ? (await getDb().collection('users').doc(uid).get()).data()?.passkeys || []
         : [];
@@ -147,11 +145,8 @@ exports.verifyPasskeyRegistration = onCall(async (request) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     } else {
-        // Pre-auth registration, save passkey temporarily so createAccount can use it later if needed,
-        // or just rely on client passing it during createAccount. The UI doesn't currently
-        // pass it to createAccount, but we don't have a user doc yet. We must return it to client.
-        // For MANSUKE, registration flow creates user AFTER passkey setup.
-        // Let's store it temporarily in a 'temp_passkeys' collection so `createAccount` could pick it up.
+        // 事前登録（アカウント未作成）の場合、createAccountが後で取得できるようtemp_passkeysから一時保存する。
+        // MANSUKEではパスキーセットアップ後にユーザードキュメントを作成するフロー。
         await getDb().collection('temp_passkeys').doc(tempToken).set({
             passkeys: [passkeyData],
             createdAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -1,9 +1,7 @@
-/**
- * functions/auth.js
- * firebase-functions v2: callable signature is (request) => {}
- * request.data  = payload from client
- * request.auth  = auth context (null if unauthenticated)
- */
+// functions/auth.js
+// firebase-functions v2: callableのシグネチャ指定：(request) => {}
+// request.data  = クライアントからのペイロード
+// request.auth  = 認証コンテキスト（未認証のNull）
 
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
@@ -26,7 +24,7 @@ function requireAuth(request) {
     }
 }
 
-// ── checkEmailUnique ──────────────────────────────────────────────────
+// メールアドレスの重複チェック
 
 exports.checkEmailUnique = onCall(async (request) => {
     const { email } = request.data;
@@ -41,7 +39,7 @@ exports.checkEmailUnique = onCall(async (request) => {
     }
 });
 
-// ── checkPhoneUnique ──────────────────────────────────────────────────
+// 電話番号の重複チェック
 
 exports.checkPhoneUnique = onCall(async (request) => {
     const { phone } = request.data;
@@ -57,7 +55,7 @@ exports.checkPhoneUnique = onCall(async (request) => {
     return { unique: snap.empty };
 });
 
-// ── createAccount ─────────────────────────────────────────────────────
+// アカウント作成
 
 exports.createAccount = onCall(async (request) => {
     const { lastName, firstName, furiganaLast, furiganaFirst, birthday, email, phone, password, nickname, linkGoogle, inviteCode } = request.data;
@@ -92,8 +90,8 @@ exports.createAccount = onCall(async (request) => {
         }
         if (err.message.includes('TOO_LONG') || err.message.includes('TOO_SHORT') || err.code === 'auth/invalid-phone-number') {
             try {
-                // Retry without phone number if Firebase Auth strict validation fails
-                // The phone number is still saved in Firestore for the application use
+                // Firebase AuthのStrictバリデーションが失敗した場合、電話番号なしでリトライする
+                // 電話番号はアプリ内利用のためFirestoreに引き続き保存する
                 userRecord = await admin.auth().createUser({
                     email,
                     password,
@@ -107,8 +105,8 @@ exports.createAccount = onCall(async (request) => {
         }
     }
 
-    // Check if there was a passkey generated during registration phase
-    // The tempToken used in UI was `email` if not logged in.
+    // 登録フェーズ中にパスキーが生成されていたか確認する
+    // UIで使用した一時トークンは未ログイン時は`email`が使われる
     let initialPasskeys = [];
     const tempTokenId = `pre_${Buffer.from(email || 'anon').toString('hex').slice(0, 20)}`;
     try {
@@ -121,7 +119,7 @@ exports.createAccount = onCall(async (request) => {
         console.warn('Failed to retrieve temp passkey', e);
     }
 
-    // Convert E.164 phone (+8190...) to local format (090...) for Didit consistency
+    // E.164形式の電話番号（+8190...）をDidit一貫性のため国内形式（090...）に変換する
     let localPhone = normalizedPhone || '';
     if (localPhone.startsWith('+81')) {
         localPhone = '0' + localPhone.slice(3);
@@ -161,7 +159,7 @@ exports.createAccount = onCall(async (request) => {
     return { customToken, uid: userRecord.uid };
 });
 
-// ── changePassword ────────────────────────────────────────────────────
+// パスワード変更
 
 exports.changePassword = onCall(async (request) => {
     requireAuth(request);
@@ -189,14 +187,14 @@ exports.changePassword = onCall(async (request) => {
     }
 });
 
-// ── linkGoogle ────────────────────────────────────────────────────────
+// Google連携
 
 exports.linkGoogle = onCall(async (request) => {
     requireAuth(request);
     const uid = request.auth.uid;
 
-    // Firebase Auth linking is handled client-side via linkWithPopup.
-    // This CF simply records the link state in Firestore.
+    // Firebase Authの連携自体はクライアント側のlinkWithPopupで処理される。
+    // このCloud関数はFirestoreの連携状態を記録するのみ。
     await getDb().collection('users').doc(uid).update({
         googleLinked: true,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -205,9 +203,8 @@ exports.linkGoogle = onCall(async (request) => {
     return { success: true };
 });
 
-// ── deleteUnlinkedGoogleUser ──────────────────────────────────────────
-// ログイン直後に呼び出す。MANSUKEアカウントと連携されていないGoogleユーザーを
-// Firebase Authから完全に削除する。
+// 未連携のGoogleユーザーをFirebase Authから削除する
+// ログイン直後に呼び出す。MANSUKEアカウントと連携されていないGoogleユーザーを削除する。
 
 exports.deleteUnlinkedGoogleUser = onCall(async (request) => {
     requireAuth(request);
@@ -232,7 +229,7 @@ exports.deleteUnlinkedGoogleUser = onCall(async (request) => {
     return { success: true };
 });
 
-// ── unlinkGoogle ──────────────────────────────────────────────────────
+// Google連携解除
 
 exports.unlinkGoogle = onCall(async (request) => {
     requireAuth(request);
@@ -243,7 +240,7 @@ exports.unlinkGoogle = onCall(async (request) => {
             providersToUnlink: ['google.com'],
         });
     } catch (err) {
-        // If not linked, treat as success
+        // 連携されていない場合は成功として扱う
         if (!err.message?.includes('provider')) {
             throw new HttpsError('internal', 'Google連携の解除に失敗しました: ' + err.message);
         }
