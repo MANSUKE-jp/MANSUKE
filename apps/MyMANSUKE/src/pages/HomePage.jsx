@@ -24,6 +24,12 @@ const APPS = [
         iconUrl: 'https://i.imghippo.com/files/qpDV9295cJk.png',
         name: 'WEREWOLF',
         href: 'https://werewolf.mansuke.jp'
+    },
+    {
+        internalId: 'pm02',
+        iconUrl: 'https://i.imghippo.com/files/MxdM5481HJI.png',
+        name: 'PM02',
+        href: 'https://pm02.mansuke.jp'
     }
     // 例:
     // {
@@ -131,7 +137,8 @@ export default function HomePage() {
 
     // アクセス制御: blockedApps 配列にアプリのinternalIdが含まれていたら非表示
     // blockedApps が未設定（null/undefined）の場合は全アプリに表示
-    const blockedApps = userData?.blockedApps ?? [];
+    const rawBlockedApps = userData?.blockedApps;
+    const blockedApps = Array.isArray(rawBlockedApps) ? rawBlockedApps : (typeof rawBlockedApps === 'string' ? [rawBlockedApps] : []);
 
     const visibleApps = APPS.filter(app => !blockedApps.includes(app.internalId));
 

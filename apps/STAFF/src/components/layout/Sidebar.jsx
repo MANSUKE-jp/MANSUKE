@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     QrCode, Upload, CreditCard, Users,
-    LogOut, CheckCircle2, Shield, PanelLeftClose, PanelLeftOpen, Activity
+    LogOut, CheckCircle2, Shield, PanelLeftClose, PanelLeftOpen, Activity, MapPin
 } from 'lucide-react';
 
 const NAV_SECTIONS = [
@@ -19,6 +19,12 @@ const NAV_SECTIONS = [
         label: 'MANSUKEアカウント情報',
         items: [
             { to: '/users', icon: Users, label: 'ユーザー検索' },
+        ],
+    },
+    {
+        label: 'PM2',
+        items: [
+            { to: '/pm2', icon: MapPin, label: 'MAN02 管理' },
         ],
     },
 ];

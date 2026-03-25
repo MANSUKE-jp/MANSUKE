@@ -19,8 +19,35 @@ import SsoRedirect from './pages/SsoRedirect';
 import useChannelTalk from './hooks/useChannelTalk';
 
 // ──────────────────────────────────────────────
-// Guards
+// Guards & Error Boundary
 // ──────────────────────────────────────────────
+
+class GlobalErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, errorInfo) {
+        console.error("Caught by ErrorBoundary:", error, errorInfo);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{ padding: '40px', background: '#fef2f2', color: '#7f1d1d', minHeight: '100vh', fontFamily: 'sans-serif' }}>
+                    <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>エラーが発生しました (App Crashed)</h1>
+                    <p>この画面のスクリーンショットを開発者に送ってください。</p>
+                    <pre style={{ background: '#fee2e2', padding: '16px', borderRadius: '8px', overflowX: 'auto', marginTop: '16px' }}>
+                        {this.state.error && this.state.error.toString()}
+                    </pre>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 // Redirect to /login if not authenticated (preserve redirect param)
 function RequireAuth({ children }) {
@@ -137,10 +164,12 @@ function AppRoutes() {
 
 export default function App() {
     return (
-        <BrowserRouter>
-            <AuthProvider>
-                <AppRoutes />
-            </AuthProvider>
-        </BrowserRouter>
+        <GlobalErrorBoundary>
+            <BrowserRouter>
+                <AuthProvider>
+                    <AppRoutes />
+                </AuthProvider>
+            </BrowserRouter>
+        </GlobalErrorBoundary>
     );
 }

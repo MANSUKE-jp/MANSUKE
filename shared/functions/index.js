@@ -16,6 +16,7 @@ const hirusupa = require("./apps/hirusupa");
 const werewolf = require("./apps/werewolf");
 const mymansuke = require("./apps/mymansuke");
 const staff = require("./apps/staff");
+const man02 = require("./apps/man02");
 
 // 全関数をエクスポート
 module.exports = {
@@ -23,4 +24,5 @@ module.exports = {
     ...werewolf,
     ...mymansuke,
     ...staff,
+    ...man02,
 };

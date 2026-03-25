@@ -119,6 +119,37 @@
             ]
         },
         {
+            "target": "mansuke-man02",
+            "public": "apps/MAN02/dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*",
+                "**/node_modules/**"
+            ],
+            "headers": [
+                {
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
+                }
+            ],
+            "rewrites": [
+                {
+                    "source": "/api/verifyMansukeToken",
+                    "function": "man02VerifyMansukeToken",
+                    "region": "asia-northeast2"
+                },
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
             "target": "homepage",
             "public": "apps/HOMEPAGE/public",
             "ignore": [
@@ -162,6 +193,10 @@
         {
             "database": "orders",
             "rules": "firestore/orders.rules"
+        },
+        {
+            "database": "man02",
+            "rules": "firestore/man02.rules"
         }
     ],
     "storage": {

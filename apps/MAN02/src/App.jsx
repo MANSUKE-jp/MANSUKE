@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { signInAnonymously, signInWithCustomToken, signOut } from 'firebase/auth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { auth, usersDb } from './firebase';
-import AppLayout from './components/layout/AppLayout';
-import PosPage from './pages/PosPage';
-import CsvPage from './pages/CsvPage';
-import CardsPage from './pages/CardsPage';
-import CardDetailPage from './pages/CardDetailPage';
-import UsersPage from './pages/UsersPage';
-import UserDetailPage from './pages/UserDetailPage';
-import Pm2Page from './pages/Pm2Page';
+import { auth, db, usersDb } from './firebase';
+import MapPage from './pages/MapPage';
 
+// ローディングオーバーレイ
 const LoadingOverlay = ({ message }) => (
     <div className="loading-overlay">
         <h1 className="loading-logo">MANSUKE</h1>
@@ -81,14 +74,36 @@ const App = () => {
                     }
 
                     setLoadingMessage("権限を確認中...");
+
+                    // usersデータベースからユーザー情報を取得
                     const userDoc = await getDoc(doc(usersDb, 'users', data.uid));
+                    let userData = null;
                     if (userDoc.exists()) {
-                        const userData = userDoc.data();
+                        userData = userDoc.data();
                         setMansukeUser(userData);
-                        if (!userData.isStaff) {
+                    }
+
+                    // man02データベースからアクセス権限を確認
+                    const isStaff = userData?.isStaff === true;
+                    if (!isStaff) {
+                        try {
+                            const accessDoc = await getDoc(doc(db, 'config', 'access'));
+                            if (accessDoc.exists()) {
+                                const allowedUids = accessDoc.data().allowedUids || [];
+                                if (!allowedUids.includes(data.uid)) {
+                                    setAccessDenied(true);
+                                }
+                            } else {
+                                // config/accessドキュメントが存在しない場合はアクセス拒否
+                                setAccessDenied(true);
+                            }
+                        } catch (err) {
+                            console.error("アクセス権限の確認に失敗:", err);
                             setAccessDenied(true);
                         }
-                    } else {
+                    }
+
+                    if (!userData) {
                         setAccessDenied(true);
                     }
                 } else if (res.status === 401) {
@@ -97,6 +112,7 @@ const App = () => {
                     window.location.href = `https://my.mansuke.jp/sso?redirect=${currentUrl}`;
                 }
             } catch (err) {
+                console.error("認証エラー:", err);
                 setAccessDenied(true);
             } finally {
                 setIsRestoring(false);
@@ -106,13 +122,27 @@ const App = () => {
         checkMansukeAuth();
     }, []);
 
+    // ユーザー情報のリアルタイム監視
     useEffect(() => {
         if (!user?.uid || window.location.hostname === 'localhost') return;
         const unsubscribe = onSnapshot(doc(usersDb, 'users', user.uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setMansukeUser(prev => ({ ...prev, ...data }));
-                if (!data.isStaff) setAccessDenied(true);
+                // isStaffが無効化された場合は再チェック
+                if (!data.isStaff) {
+                    // ホワイトリストを再確認
+                    getDoc(doc(db, 'config', 'access')).then(accessDoc => {
+                        if (accessDoc.exists()) {
+                            const allowedUids = accessDoc.data().allowedUids || [];
+                            if (!allowedUids.includes(user.uid)) {
+                                setAccessDenied(true);
+                            }
+                        } else {
+                            setAccessDenied(true);
+                        }
+                    }).catch(() => setAccessDenied(true));
+                }
             } else {
                 setAccessDenied(true);
             }
@@ -139,44 +169,22 @@ const App = () => {
     if (accessDenied) {
         return (
             <div className="access-denied-page">
-                <h1 className="access-denied-title">ACCESS DENIED</h1>
-                <p className="access-denied-text">
-                    このアプリケーション（MANSUKE STAFF CONSOLE）はスタッフ専用です。<br />
-                    実行権限がありません。
-                </p>
-                <button onClick={handleLogout} className="btn btn-secondary" style={{ marginTop: 24 }}>
-                    ログアウトしてMyMANSUKEに戻る
-                </button>
+                <div className="access-denied-card">
+                    <div className="access-denied-icon">🔒</div>
+                    <h1 className="access-denied-title">ACCESS DENIED</h1>
+                    <p className="access-denied-text">
+                        このアプリケーション（MANSUKE MAN02）へのアクセス権限がありません。<br />
+                        管理者にお問い合わせください。
+                    </p>
+                    <button onClick={handleLogout} className="btn btn-secondary" style={{ marginTop: 24 }}>
+                        ログアウトしてMyMANSUKEに戻る
+                    </button>
+                </div>
             </div>
         );
     }
 
-    return (
-        <BrowserRouter>
-            <AppRoutes user={user} mansukeUser={mansukeUser} onLogout={handleLogout} />
-        </BrowserRouter>
-    );
-};
-
-const AppRoutes = ({ user, mansukeUser, onLogout }) => {
-    const location = useLocation();
-    const isPos = location.pathname === '/pos' || location.pathname === '/';
-
-    return (
-        <AppLayout user={user} mansukeUser={mansukeUser} onLogout={onLogout} fullWidth={isPos}>
-            <Routes>
-                <Route path="/" element={<Navigate to="/pos" replace />} />
-                <Route path="/pos" element={<PosPage />} />
-                <Route path="/csv" element={<CsvPage />} />
-                <Route path="/cards" element={<CardsPage />} />
-                <Route path="/cards/:cardId" element={<CardDetailPage />} />
-                <Route path="/users" element={<UsersPage />} />
-                <Route path="/users/:uid" element={<UserDetailPage />} />
-                <Route path="/pm2" element={<Pm2Page />} />
-                <Route path="*" element={<Navigate to="/pos" replace />} />
-            </Routes>
-        </AppLayout>
-    );
+    return <MapPage user={user} mansukeUser={mansukeUser} onLogout={handleLogout} />;
 };
 
 export default App;

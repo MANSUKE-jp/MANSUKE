@@ -1,39 +1,31 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
 
+// MAN02専用のFirebase設定
 const firebaseConfig = {
     apiKey: "AIzaSyDyJG7U0FfhCIxY8AgBETobHvwQlGYhtlE",
     authDomain: "mansuke-app.firebaseapp.com",
+    databaseURL: "https://mansuke-app-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "mansuke-app",
     storageBucket: "mansuke-app.firebasestorage.app",
     messagingSenderId: "630381081049",
-    appId: "1:630381081049:web:44ebc16d3eec7d722e69c8",
-    measurementId: "G-KP8GD8L34P"
+    appId: "1:630381081049:web:a19bd55dd3b88dbf2e69c8",
+    measurementId: "G-BJ84S1BB9E"
 };
 
 const app = initializeApp(firebaseConfig);
 
-// Firestore: prepaid-cardデータベース
+// Firestore: man02データベース
 export const db = initializeFirestore(app, {
     experimentalForceLongPolling: true,
-}, 'prepaid-card');
+}, 'man02');
 
 // Firestore: usersデータベース
 export const usersDb = initializeFirestore(app, {
     experimentalForceLongPolling: true,
 }, 'users');
-
-// Firestore: ordersデータベース
-export const ordersDb = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-}, 'orders');
-
-// Firestore: man02データベース
-export const man02Db = initializeFirestore(app, {
-    experimentalForceLongPolling: true,
-}, 'man02');
 
 // Cloud Functions（大阪リージョン）
 export const functions = getFunctions(app, "asia-northeast2");

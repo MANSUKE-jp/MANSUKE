@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // config/access: 認証ユーザーのみ読み取り、書き込みはCloud Functions（admin SDK）経由のみ
+    match /config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // location/current: 認証ユーザーは読み取り・書き込み可能（iOSアプリからの書き込みを許可）
+    match /location/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}
