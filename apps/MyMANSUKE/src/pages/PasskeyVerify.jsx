@@ -11,6 +11,8 @@ export default function PasskeyVerify() {
     const navigate = useNavigate();
     const location = useLocation();
     const redirectTo = location.state?.redirect || '/';
+    const isAppMode = location.state?.appMode || false;
+    const callbackScheme = location.state?.callback || '';
 
     const handleSignOut = async () => {
         try {
@@ -25,12 +27,31 @@ export default function PasskeyVerify() {
     const [error, setError] = useState('');
     const [supported, setSupported] = useState(null); // null = checking
 
+    // アプリモード時のコールバック処理
+    const handleAppCallback = async (currentUser) => {
+        try {
+            const idToken = await currentUser.getIdToken(true);
+            if (callbackScheme) {
+                window.location.href = `${callbackScheme}?token=${encodeURIComponent(idToken)}`;
+            }
+        } catch (err) {
+            console.error('Failed to get ID token for app callback:', err);
+        }
+    };
+
     useEffect(() => {
         if (!user || userData === null) return;
         const passkeys = userData.passkeys || [];
         if (passkeys.length === 0) {
             const skipVerification = async () => {
                 setPasskeyVerified(true);
+
+                // アプリモード時はトークンをアプリに返す
+                if (isAppMode && callbackScheme) {
+                    await handleAppCallback(user);
+                    return;
+                }
+
                 const token = await user.getIdToken();
                 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
                 const domainStr = isLocalhost ? '' : 'domain=.mansuke.jp;';
@@ -51,7 +72,7 @@ export default function PasskeyVerify() {
         } else {
             if (status === 'loading-context') setStatus('idle');
         }
-    }, [userData, user, redirectTo, navigate, setPasskeyVerified, status]);
+    }, [userData, user, redirectTo, navigate, setPasskeyVerified, status, isAppMode, callbackScheme]);
 
     useEffect(() => {
         let cancelled = false;
@@ -77,6 +98,12 @@ export default function PasskeyVerify() {
             await verifyF({ uid: user.uid, assertion });
 
             setPasskeyVerified(true);
+
+            // アプリモード時はトークンをアプリに返す
+            if (isAppMode && callbackScheme) {
+                await handleAppCallback(user);
+                return;
+            }
 
             // 他のMANSUKEアプリへのリダイレクト用Cookie
             const token = await user.getIdToken();

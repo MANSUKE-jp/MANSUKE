@@ -17,6 +17,7 @@ const werewolf = require("./apps/werewolf");
 const mymansuke = require("./apps/mymansuke");
 const staff = require("./apps/staff");
 const man02 = require("./apps/man02");
+const keyboard = require("./apps/keyboard");
 
 // 全関数をエクスポート
 module.exports = {
@@ -25,4 +26,5 @@ module.exports = {
     ...mymansuke,
     ...staff,
     ...man02,
+    ...keyboard,
 };

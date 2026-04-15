@@ -78,6 +78,14 @@ function GuestOnly({ children }) {
     if (loading) return <FullPageLoader />;
     if (user && passkeyVerified) {
         const searchParams = new URLSearchParams(location.search);
+        
+        // アプリモードの場合、すでにログイン済みならコールバックへリダイレクト
+        const isAppMode = searchParams.get('mode') === 'app' || sessionStorage.getItem('isAppMode') === 'true';
+        const callbackScheme = searchParams.get('callback') || sessionStorage.getItem('appCallback');
+        if (isAppMode && callbackScheme) {
+            return <AppCallbackRedirect user={user} callback={callbackScheme} />;
+        }
+
         const redirectParam = searchParams.get('redirect');
 
         if (redirectParam && redirectParam.startsWith('http')) {
@@ -98,37 +106,70 @@ function GuestOnly({ children }) {
 
 function FullPageLoader() {
     return (
-        <div style={{
-            width: '100vw', height: '100vh',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-base)',
-        }}>
-            <div className="spinner" style={{ width: 36, height: 36, borderWidth: 3 }} />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg-body)' }}>
+            <div className="spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
         </div>
     );
 }
 
+// アプリモード向けのコールバック自動リダイレクトコンポーネント
+function AppCallbackRedirect({ user, callback }) {
+    React.useEffect(() => {
+        user.getIdToken(true).then(token => {
+            window.location.href = `${callback}?token=${encodeURIComponent(token)}`;
+        }).catch(err => {
+            console.error('Failed to get ID token for app callback:', err);
+        });
+    }, [user, callback]);
+    return <FullPageLoader />;
+}
+
 // ──────────────────────────────────────────────
-// Router
+// App Router
 // ──────────────────────────────────────────────
 function AppRoutes() {
     const { user, userData } = useAuth();
+    const location = useLocation();
     useChannelTalk(user, userData);
+
+    // mode=app パラメータが存在する場合、セッションストレージに保存してモバイルブロッカーを無効化する
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('mode') === 'app') {
+        sessionStorage.setItem('isAppMode', 'true');
+        const cb = searchParams.get('callback');
+        if (cb) sessionStorage.setItem('appCallback', cb);
+    }
+    const isAppMode = sessionStorage.getItem('isAppMode') === 'true';
+
+    // Allow mobile access to auth pages
+    const isAuthPage = ['/login', '/register', '/passkey-verify'].includes(location.pathname);
+    const showMobileBlocker = !isAppMode && !isAuthPage;
+    const effectiveAppMode = isAppMode || isAuthPage;
+
+    React.useEffect(() => {
+        if (effectiveAppMode) {
+            document.body.classList.add('app-mode');
+        } else {
+            document.body.classList.remove('app-mode');
+        }
+    }, [effectiveAppMode]);
 
     return (
         <>
-            <div className="mobile-blocker">
-                <div style={{ textAlign: 'center', padding: '24px' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱❌</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>このデバイスには対応していません</h2>
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        MyMANSUKEは、スマートフォンなどの画面の小さいデバイスからのアクセスに対応していません。<br />
-                        恐れ入りますが、PCまたはタブレットからアクセスしてください。
-                    </p>
+            {showMobileBlocker && (
+                <div className="mobile-blocker">
+                    <div style={{ textAlign: 'center', padding: '24px' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📱❌</div>
+                        <h2 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px' }}>このデバイスには対応していません</h2>
+                        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                            MyMANSUKEは、スマートフォンなどの画面の小さいデバイスからのアクセスに対応していません。<br />
+                            恐れ入りますが、PCまたはタブレットからアクセスしてください。
+                        </p>
+                    </div>
                 </div>
-            </div>
+            )}
             
-            <div className="desktop-app-container">
+            <div className={effectiveAppMode ? "app-mode-container" : "desktop-app-container"}>
                 <Routes>
                     {/* Guest routes */}
                     <Route path="/login" element={<GuestOnly><LoginPage /></GuestOnly>} />

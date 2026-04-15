@@ -8,18 +8,58 @@ export default function LoginPage() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const redirectTo = searchParams.get('redirect') || '/';
+    const isAppMode = searchParams.get('mode') === 'app';
+    const callbackScheme = searchParams.get('callback') || '';
 
     const [email, setEmail] = useState('');
     const [pass, setPass] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // アプリモード時のコールバック処理
+    const handleAppCallback = async (user) => {
+        try {
+            const idToken = await user.getIdToken(true);
+            if (callbackScheme) {
+                // カスタムURLスキームにトークンを返す
+                window.location.href = `${callbackScheme}?token=${encodeURIComponent(idToken)}`;
+            }
+        } catch (err) {
+            setError('トークンの取得に失敗しました。もう一度お試しください。');
+        }
+    };
+
     const handleLogin = async e => {
         e.preventDefault();
         setError(''); setLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, pass);
-            navigate('/passkey-verify', { state: { redirect: redirectTo } });
+            const cred = await signInWithEmailAndPassword(auth, email, pass);
+
+            if (isAppMode && callbackScheme) {
+                // アプリモード: パスキーが設定されているか確認する
+                const { getFirestore, getDoc, doc } = await import('firebase/firestore');
+                const { getApp } = await import('firebase/app');
+                const fsdb = getFirestore(getApp(), 'users');
+                const userDoc = await getDoc(doc(fsdb, 'users', cred.user.uid));
+                const passkeys = userDoc.exists() ? (userDoc.data()?.passkeys || []) : [];
+
+                if (passkeys.length > 0) {
+                    // パスキー検証ページへ、mode=appパラメータを引き継ぐ
+                    navigate('/passkey-verify', {
+                        state: {
+                            redirect: redirectTo,
+                            appMode: true,
+                            callback: callbackScheme,
+                        }
+                    });
+                } else {
+                    // パスキー未設定 → 直接トークンをアプリに返す
+                    await handleAppCallback(cred.user);
+                }
+            } else {
+                // 通常モード
+                navigate('/passkey-verify', { state: { redirect: redirectTo } });
+            }
         } catch (err) {
             setError(getErrorMessage(err.code));
         } finally { setLoading(false); }
@@ -32,16 +72,12 @@ export default function LoginPage() {
             const uid = cred.user.uid;
 
             // このGoogleアカウントがMANSUKEアカウントと連携されているか確認する
-            // users Firestoreの連携済みアカウントはgoogleLinked:trueを持つ
-            // uidぎusersコレクションに存在しウイgoogleLinked=trueならログインを許可する
             const { getFirestore, getDoc, doc } = await import('firebase/firestore');
             const { getApp } = await import('firebase/app');
             const fsdb = getFirestore(getApp(), 'users');
             const userDoc = await getDoc(doc(fsdb, 'users', uid));
 
             if (!userDoc.exists() || !userDoc.data()?.googleLinked) {
-                // このGoogleアカウントはどのMANSUKEアカウントとも連携されていない
-                // Firebase AuthからGoogleユーザーを削除してからサインアウト
                 try {
                     const { getFunctions, httpsCallable } = await import('firebase/functions');
                     const fns = getFunctions(getApp(), 'asia-northeast2');
@@ -55,7 +91,22 @@ export default function LoginPage() {
                 return;
             }
 
-            navigate('/passkey-verify', { state: { redirect: redirectTo } });
+            if (isAppMode && callbackScheme) {
+                const passkeys = userDoc.data()?.passkeys || [];
+                if (passkeys.length > 0) {
+                    navigate('/passkey-verify', {
+                        state: {
+                            redirect: redirectTo,
+                            appMode: true,
+                            callback: callbackScheme,
+                        }
+                    });
+                } else {
+                    await handleAppCallback(cred.user);
+                }
+            } else {
+                navigate('/passkey-verify', { state: { redirect: redirectTo } });
+            }
         } catch (err) {
             if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
                 setError(getErrorMessage(err.code));
@@ -76,6 +127,22 @@ export default function LoginPage() {
                 </div>
 
                 <h1 className="login-title">ログイン</h1>
+
+                {isAppMode && (
+                    <div style={{
+                        background: 'rgba(99,102,241,0.08)',
+                        border: '1px solid rgba(99,102,241,0.2)',
+                        borderRadius: 'var(--radius-sm, 8px)',
+                        padding: '12px 16px',
+                        marginBottom: '20px',
+                        fontSize: '13px',
+                        color: 'var(--text-2, #64748b)',
+                        textAlign: 'center',
+                        lineHeight: 1.6,
+                    }}>
+                        MANSUKE KEYBOARDアプリにログインします
+                    </div>
+                )}
 
                 {error && (
                     <div className="error-box">
@@ -113,18 +180,20 @@ export default function LoginPage() {
                     <GoogleIcon /> Googleでログイン
                 </button>
 
-                <div style={{
-                    marginTop: 24, paddingTop: 20,
-                    borderTop: '1px solid rgba(15, 23, 42, 0.1)',
-                }}>
-                    <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10, textAlign: 'center' }}>
-                        アカウントをお持ちでないですか？
-                    </p>
-                    <button className="btn btn-secondary btn-full"
-                        onClick={() => navigate(`/register?redirect=${encodeURIComponent(redirectTo)}`)}>
-                        アカウントを作成する
-                    </button>
-                </div>
+                {!isAppMode && (
+                    <div style={{
+                        marginTop: 24, paddingTop: 20,
+                        borderTop: '1px solid rgba(15, 23, 42, 0.1)',
+                    }}>
+                        <p style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 10, textAlign: 'center' }}>
+                            アカウントをお持ちでないですか？
+                        </p>
+                        <button className="btn btn-secondary btn-full"
+                            onClick={() => navigate(`/register?redirect=${encodeURIComponent(redirectTo)}`)}>
+                            アカウントを作成する
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

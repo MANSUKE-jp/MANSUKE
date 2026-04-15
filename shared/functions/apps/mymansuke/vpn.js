@@ -8,11 +8,27 @@ const { internalCreateSubscription, internalCancelSubscription } = require('../.
 if (!admin.apps.length) admin.initializeApp();
 const db = getFirestore("users");
 
+// load VPN/.env manually since it's outside of standard functions directory
+try {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = path.resolve(__dirname, '../../../../VPN/.env');
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    envContent.split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w]+)\s*=\s*(.*)\s*$/);
+        if (match && !process.env[match[1]]) {
+            process.env[match[1]] = match[2];
+        }
+    });
+} catch (e) {
+    // Ignore error if file doesn't exist
+}
+
 // WireGuard Easy APIの設定
-const WG_HOST = 'vpn.mansuke.jp';
-const WG_PORT = '80';
-const WG_PASSWORD = 'mansuke_wg_api_pass_2026';
-const WG_API_URL = `http://${WG_HOST}:${WG_PORT}/api`;
+const WG_HOST = process.env.WG_HOST || 'vpn.mansuke.jp';
+const WG_PORT = process.env.WG_PORT || '80';
+const WG_PASSWORD = process.env.WG_PASSWORD || 'chiru0808';
+const WG_API_URL = process.env.WG_API_URL || `http://${WG_HOST}:${WG_PORT}/api`;
 
 // フロント認証とMANSUKEトークン認証の両方に対応した認証UID取得ヘルパー
 async function getAuthenticatedUid(request) {

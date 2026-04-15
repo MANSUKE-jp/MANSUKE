@@ -1300,3 +1300,23 @@ a {
         display: none !important;
     }
 }
+
+/* App Mode (MANSUKE KEYBOARD等のアプリ内WebViewでアクセス時) */
+.app-mode-container {
+    display: block !important;
+}
+
+/* app-mode時のモバイル最適化 */
+body.app-mode .mobile-blocker {
+    display: none !important;
+}
+
+body.app-mode .login-card {
+    max-width: 100%;
+    padding: 32px 20px;
+}
+
+body.app-mode .auth-page {
+    padding: 16px;
+}
+
